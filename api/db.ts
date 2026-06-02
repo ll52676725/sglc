@@ -1,0 +1,125 @@
+import initSqlJs, { type Database } from 'sql.js'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const DB_PATH = path.resolve(__dirname, '..', 'data', 'memory.db')
+
+let db: Database | null = null
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS media (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL CHECK(type IN ('photo', 'video')),
+  filename TEXT NOT NULL,
+  url TEXT NOT NULL,
+  thumbnail_url TEXT NOT NULL,
+  date_taken TEXT,
+  location TEXT DEFAULT '',
+  description TEXT DEFAULT '',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS albums (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK(category IN ('holiday', 'travel', 'daily', 'milestone', 'other')),
+  description TEXT DEFAULT '',
+  cover_media_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS media_albums (
+  media_id TEXT NOT NULL,
+  album_id TEXT NOT NULL,
+  PRIMARY KEY (media_id, album_id)
+);
+
+CREATE TABLE IF NOT EXISTS media_people (
+  id TEXT PRIMARY KEY,
+  media_id TEXT NOT NULL,
+  name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_tags (
+  id TEXT PRIMARY KEY,
+  media_id TEXT NOT NULL,
+  tag TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS biographies (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  style TEXT NOT NULL CHECK(style IN ('formal', 'casual', 'poetic')),
+  language TEXT NOT NULL CHECK(language IN ('zh', 'en')),
+  start_year INTEGER,
+  end_year INTEGER,
+  content TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_date_taken ON media(date_taken);
+CREATE INDEX IF NOT EXISTS idx_media_type ON media(type);
+CREATE INDEX IF NOT EXISTS idx_media_albums_album ON media_albums(album_id);
+CREATE INDEX IF NOT EXISTS idx_media_tags_tag ON media_tags(tag);
+`
+
+function ensureDataDir() {
+  const dir = path.dirname(DB_PATH)
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+}
+
+export function saveDb() {
+  if (!db) return
+  ensureDataDir()
+  const data = db.export()
+  const buffer = Buffer.from(data)
+  fs.writeFileSync(DB_PATH, buffer)
+}
+
+export async function getDb(): Promise<Database> {
+  if (db) return db
+
+  const SQL = await initSqlJs()
+
+  ensureDataDir()
+
+  if (fs.existsSync(DB_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_PATH)
+    db = new SQL.Database(fileBuffer)
+  } else {
+    db = new SQL.Database()
+    db.run(SCHEMA)
+    saveDb()
+  }
+
+  return db
+}
+
+export function all<T = Record<string, unknown>>(db: Database, sql: string, params: unknown[] = []): T[] {
+  const stmt = db.prepare(sql)
+  stmt.bind(params)
+  const rows: T[] = []
+  while (stmt.step()) {
+    rows.push(stmt.getAsObject() as T)
+  }
+  stmt.free()
+  return rows
+}
+
+export function get<T = Record<string, unknown>>(db: Database, sql: string, params: unknown[] = []): T | undefined {
+  const rows = all<T>(db, sql, params)
+  return rows[0]
+}
+
+export function run(db: Database, sql: string, params: unknown[] = []): void {
+  db.run(sql, params)
+  saveDb()
+}
