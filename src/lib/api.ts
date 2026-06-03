@@ -85,4 +85,47 @@ export const api = {
   ai: {
     classify: (albumId?: string) => request<any>(`/ai/classify/${albumId || 'all'}`),
   },
+  moments: {
+    list: (params?: Record<string, any>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+      return request<{ items: any[]; total: number; page: number; limit: number }>(`/moments${qs}`)
+    },
+    get: (id: string) => request<any>(`/moments/${id}`),
+    create: async (data: {
+      content: string
+      mood?: string
+      weather?: string
+      location?: string
+      happenedAt: string
+      tags?: string[]
+      existingMediaIds?: string[]
+      files?: File[]
+      videoThumbnails?: Map<string, Blob>
+    }) => {
+      const form = new FormData()
+      form.append('content', data.content)
+      if (data.mood) form.append('mood', data.mood)
+      if (data.weather) form.append('weather', data.weather)
+      if (data.location) form.append('location', data.location)
+      form.append('happenedAt', data.happenedAt)
+      if (data.tags && data.tags.length > 0) form.append('tags', JSON.stringify(data.tags))
+      if (data.existingMediaIds && data.existingMediaIds.length > 0) form.append('existingMediaIds', JSON.stringify(data.existingMediaIds))
+      if (data.files) {
+        data.files.forEach((f) => form.append('files', f))
+      }
+      if (data.videoThumbnails) {
+        data.videoThumbnails.forEach((blob, filename) => {
+          form.append('thumbnails', blob, `thumb_${filename}.jpg`)
+        })
+      }
+      return request('/moments', { method: 'POST', body: form })
+    },
+    update: (id: string, data: any) =>
+      request<any>(`/moments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) => request<void>(`/moments/${id}`, { method: 'DELETE' }),
+  },
 }

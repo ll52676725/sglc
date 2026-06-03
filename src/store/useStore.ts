@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import type { MediaItem, Album, Biography, Stats } from '@/types'
+import type { MediaItem, Album, Biography, Stats, Moment } from '@/types'
 
 interface AppState {
   media: MediaItem[]
   albums: Album[]
   biographies: Biography[]
+  moments: Moment[]
   stats: Stats | null
   selectedYear: number | null
   selectedMonth: number | null
@@ -25,6 +26,11 @@ interface AppState {
   updateBiographyItem: (id: string, data: Partial<Biography>) => void
   removeBiography: (id: string) => void
 
+  setMoments: (moments: Moment[]) => void
+  addMoment: (moment: Moment) => void
+  updateMomentItem: (id: string, data: Partial<Moment>) => void
+  removeMoment: (id: string) => void
+
   setStats: (stats: Stats) => void
   setSelectedYear: (year: number | null) => void
   setSelectedMonth: (month: number | null) => void
@@ -35,6 +41,7 @@ export const useStore = create<AppState>((set) => ({
   media: [],
   albums: [],
   biographies: [],
+  moments: [],
   stats: null,
   selectedYear: null,
   selectedMonth: null,
@@ -69,6 +76,15 @@ export const useStore = create<AppState>((set) => ({
     })),
   removeBiography: (id) =>
     set((s) => ({ biographies: s.biographies.filter((b) => b.id !== id) })),
+
+  setMoments: (moments) => set({ moments }),
+  addMoment: (moment) => set((s) => ({ moments: [moment, ...s.moments] })),
+  updateMomentItem: (id, data) =>
+    set((s) => ({
+      moments: s.moments.map((m) => (m.id === id ? { ...m, ...data } : m)),
+    })),
+  removeMoment: (id) =>
+    set((s) => ({ moments: s.moments.filter((m) => m.id !== id) })),
 
   setStats: (stats) => set({ stats }),
   setSelectedYear: (year) => set({ selectedYear: year }),

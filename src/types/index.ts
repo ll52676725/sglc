@@ -14,6 +14,56 @@ export interface MediaItem {
   updatedAt: string
 }
 
+export interface MomentMedia {
+  id: string
+  type: 'photo' | 'video'
+  filename: string
+  url: string
+  thumbnailUrl: string
+  dateTaken?: string | null
+  description?: string
+  location?: string
+}
+
+export interface Moment {
+  id: string
+  content: string
+  mood: string
+  weather: string
+  location: string
+  happenedAt: string
+  tags: string[]
+  media: MomentMedia[]
+  createdAt: string
+  updatedAt: string
+}
+
+export const MOOD_OPTIONS = [
+  { value: 'happy', label: '开心', emoji: '😊' },
+  { value: 'excited', label: '兴奋', emoji: '🤩' },
+  { value: 'peaceful', label: '平静', emoji: '😌' },
+  { value: 'grateful', label: '感恩', emoji: '🙏' },
+  { value: 'love', label: '幸福', emoji: '🥰' },
+  { value: 'nostalgic', label: '怀念', emoji: '🥹' },
+  { value: 'sad', label: '难过', emoji: '😢' },
+  { value: 'anxious', label: '焦虑', emoji: '😰' },
+  { value: 'angry', label: '生气', emoji: '😤' },
+  { value: 'tired', label: '疲惫', emoji: '😩' },
+  { value: 'sick', label: '不适', emoji: '🤒' },
+  { value: 'thinking', label: '沉思', emoji: '🤔' },
+] as const
+
+export const WEATHER_OPTIONS = [
+  { value: 'sunny', label: '晴', emoji: '☀️' },
+  { value: 'cloudy', label: '多云', emoji: '⛅' },
+  { value: 'overcast', label: '阴', emoji: '☁️' },
+  { value: 'rain', label: '雨', emoji: '🌧️' },
+  { value: 'snow', label: '雪', emoji: '❄️' },
+  { value: 'wind', label: '风', emoji: '💨' },
+  { value: 'fog', label: '雾', emoji: '🌫️' },
+  { value: 'storm', label: '雷暴', emoji: '⛈️' },
+] as const
+
 export interface Album {
   id: string
   name: string

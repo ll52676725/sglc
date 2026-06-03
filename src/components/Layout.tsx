@@ -3,7 +3,7 @@ import { Clock, FolderOpen, Upload, BookOpen, Feather, Sparkles } from "lucide-r
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/", label: "时间线", icon: Clock },
+  { to: "/", label: "时光动态", icon: Clock },
   { to: "/albums", label: "相册", icon: FolderOpen },
   { to: "/ai-classify", label: "AI 分类", icon: Sparkles },
   { to: "/upload", label: "上传", icon: Upload },

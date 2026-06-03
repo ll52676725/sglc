@@ -12,6 +12,7 @@ import albumRoutes from './routes/albums.js'
 import biographyRoutes from './routes/biography.js'
 import statsRoutes from './routes/stats.js'
 import aiRoutes from './routes/ai.js'
+import momentsRoutes from './routes/moments.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -36,6 +37,7 @@ app.use('/api/albums', albumRoutes)
 app.use('/api/biography', biographyRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/moments', momentsRoutes)
 
 app.use(
   '/api/health',

@@ -63,6 +63,32 @@ CREATE TABLE IF NOT EXISTS biographies (
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS moments (
+  id TEXT PRIMARY KEY,
+  content TEXT NOT NULL DEFAULT '',
+  mood TEXT DEFAULT '',
+  weather TEXT DEFAULT '',
+  location TEXT DEFAULT '',
+  happened_at TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS moment_media (
+  moment_id TEXT NOT NULL,
+  media_id TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  PRIMARY KEY (moment_id, media_id)
+);
+
+CREATE TABLE IF NOT EXISTS moment_tags (
+  id TEXT PRIMARY KEY,
+  moment_id TEXT NOT NULL,
+  tag TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_moments_happened_at ON moments(happened_at);
+CREATE INDEX IF NOT EXISTS idx_moment_tags_tag ON moment_tags(tag);
 CREATE INDEX IF NOT EXISTS idx_media_date_taken ON media(date_taken);
 CREATE INDEX IF NOT EXISTS idx_media_type ON media(type);
 CREATE INDEX IF NOT EXISTS idx_media_albums_album ON media_albums(album_id);
