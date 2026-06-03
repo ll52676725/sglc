@@ -30,19 +30,40 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
       return
     }
 
+    const albumId = req.body.albumId as string | undefined
     const db = await getDb()
     const mediaList = []
 
-    for (const file of files) {
+    const thumbnailMap = new Map<string, string>()
+    const thumbnailFiles = files.filter(f => f.originalname.startsWith('thumb_'))
+    for (const tf of thumbnailFiles) {
+      const originalFilename = tf.originalname.replace(/^thumb_/, '').replace(/\.jpg$/, '')
+      thumbnailMap.set(originalFilename, `/uploads/${tf.filename}`)
+    }
+
+    const mediaFiles = files.filter(f => !f.originalname.startsWith('thumb_'))
+
+    for (const file of mediaFiles) {
       const id = v4()
       const isVideo = file.mimetype.startsWith('video/')
       const type = isVideo ? 'video' : 'photo'
       const url = `/uploads/${file.filename}`
-      const thumbnailUrl = isVideo ? '' : url
+      let thumbnailUrl = isVideo ? '' : url
+
+      if (isVideo && thumbnailMap.has(file.originalname)) {
+        thumbnailUrl = thumbnailMap.get(file.originalname)!
+      }
 
       run(db, `INSERT INTO media (id, type, filename, url, thumbnail_url) VALUES (?, ?, ?, ?, ?)`, [
         id, type, file.originalname, url, thumbnailUrl,
       ])
+
+      if (albumId) {
+        const existing = get(db, `SELECT id FROM albums WHERE id = ?`, [albumId])
+        if (existing) {
+          run(db, `INSERT OR IGNORE INTO media_albums (media_id, album_id) VALUES (?, ?)`, [id, albumId])
+        }
+      }
 
       mediaList.push({
         id,
@@ -53,6 +74,7 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
         dateTaken: null,
         location: '',
         description: '',
+        albumIds: albumId ? [albumId] : [],
       })
     }
 

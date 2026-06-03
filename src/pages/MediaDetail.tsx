@@ -1,23 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
-import type { MediaItem } from '@/types'
+import { CATEGORY_LABELS } from '@/types'
+import type { MediaItem, Album } from '@/types'
+import { cn } from '@/lib/utils'
 
 export default function MediaDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { media: mediaList, removeMedia, updateMediaItem } = useStore()
+  const { media: mediaList, removeMedia, updateMediaItem, albums, setAlbums } = useStore()
   const [item, setItem] = useState<MediaItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [showToast, setShowToast] = useState(false)
+  const [albumIds, setAlbumIds] = useState<string[]>([])
 
   const [description, setDescription] = useState('')
   const [dateTaken, setDateTaken] = useState('')
   const [location, setLocation] = useState('')
   const [peopleInput, setPeopleInput] = useState('')
   const [tagsInput, setTagsInput] = useState('')
+
+  useEffect(() => {
+    if (albums.length === 0) {
+      api.albums.list().then(setAlbums)
+    }
+  }, [albums.length, setAlbums])
 
   useEffect(() => {
     if (!id) return
@@ -27,6 +36,7 @@ export default function MediaDetail() {
         ...data,
         people: data.people ? (Array.isArray(data.people) ? data.people.map((p: any) => typeof p === 'string' ? p : p.name) : []) : [],
         tags: data.tags ? (Array.isArray(data.tags) ? data.tags.map((t: any) => typeof t === 'string' ? t : t.tag) : []) : [],
+        albumIds: data.albumIds || [],
       }
       setItem(media)
       setDescription(media.description || '')
@@ -34,12 +44,23 @@ export default function MediaDetail() {
       setLocation(media.location || '')
       setPeopleInput((media.people || []).join(', '))
       setTagsInput((media.tags || []).join(', '))
+      setAlbumIds(media.albumIds || [])
     }).finally(() => setLoading(false))
   }, [id])
 
   const currentIndex = mediaList.findIndex((m) => m.id === id)
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex < mediaList.length - 1
+
+  const toggleAlbum = async (albumId: string) => {
+    setAlbumIds(prev => {
+      if (prev.includes(albumId)) {
+        return prev.filter(a => a !== albumId)
+      } else {
+        return [...prev, albumId]
+      }
+    })
+  }
 
   const handleSave = async () => {
     if (!id) return
@@ -52,8 +73,9 @@ export default function MediaDetail() {
         location,
         people,
         tags,
+        albumIds,
       })
-      updateMediaItem(id, { description, dateTaken, location, people, tags })
+      updateMediaItem(id, { description, dateTaken, location, people, tags, albumIds })
       setShowToast(true)
       setTimeout(() => setShowToast(false), 2000)
     } catch {}
@@ -210,6 +232,48 @@ export default function MediaDetail() {
                   <span key={i} className="inline-flex bg-parchment text-ink/70 rounded-full px-3 py-0.5 text-xs">
                     {t}
                   </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+              <FolderOpen size={14} /> 所属相册
+            </label>
+            {albums.length === 0 ? (
+              <p className="text-ink/40 text-sm">还没有相册，先去创建一个吧</p>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {albums.map((album) => (
+                  <div
+                    key={album.id}
+                    onClick={() => toggleAlbum(album.id)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition',
+                      albumIds.includes(album.id)
+                        ? 'bg-gold-100 border border-gold-300'
+                        : 'bg-white/50 border border-transparent hover:bg-white/80'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center flex-shrink-0',
+                      albumIds.includes(album.id)
+                        ? 'bg-gold-500 border-gold-500'
+                        : 'border-gold-300'
+                    )}>
+                      {albumIds.includes(album.id) && <Check size={10} className="text-white" />}
+                    </div>
+                    <span className={cn(
+                      'text-sm flex-1 truncate',
+                      albumIds.includes(album.id) ? 'text-gold-700 font-medium' : 'text-ink/70'
+                    )}>
+                      {album.name}
+                    </span>
+                    <span className="text-xs text-ink/40">
+                      {CATEGORY_LABELS[album.category]}
+                    </span>
+                  </div>
                 ))}
               </div>
             )}

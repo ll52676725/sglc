@@ -69,3 +69,62 @@ export const STYLE_LABELS: Record<string, string> = {
   casual: '轻松',
   poetic: '诗意',
 }
+
+export interface AIGroupItem {
+  name: string
+  mediaIds: string[]
+  count: number
+  icon: string
+}
+
+export interface AIAutoAlbumSuggestion {
+  type: 'people' | 'location' | 'event'
+  name: string
+  description: string
+  icon: string
+  mediaIds: string[]
+  count: number
+}
+
+export interface AIInsight {
+  type: string
+  title: string
+  description: string
+  icon: string
+}
+
+export interface AIChapter {
+  year: number
+  title: string
+  mediaCount: number
+  highlights: string[]
+  keyMoments: string[]
+}
+
+export interface AITimelineStory {
+  timeSpan: {
+    startDate: string
+    endDate: string
+    years: number
+    months: number
+  }
+  summary: string
+  chapters: AIChapter[]
+}
+
+export interface AIClassificationResult {
+  totalMedia: number
+  groups: {
+    people: AIGroupItem[]
+    locations: AIGroupItem[]
+    tags: AIGroupItem[]
+    events: AIGroupItem[]
+    seasons: AIGroupItem[]
+    timeOfDay: AIGroupItem[]
+    months: AIGroupItem[]
+    years: AIGroupItem[]
+  }
+  autoAlbumSuggestions: AIAutoAlbumSuggestion[]
+  insights: AIInsight[]
+  timelineStory: AITimelineStory | null
+}

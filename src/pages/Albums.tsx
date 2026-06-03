@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FolderOpen } from 'lucide-react'
+import { Plus, FolderOpen, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { CATEGORY_LABELS } from '@/types'
@@ -34,13 +34,22 @@ export default function Albums() {
     <div className="min-h-screen p-6 md:p-8 fade-in">
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-display text-3xl golden-underline">我的相册</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-gold-500 text-white px-5 py-2.5 rounded-xl hover:bg-gold-600 transition font-medium"
-        >
-          <Plus size={18} />
-          创建相册
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/ai-classify')}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-5 py-2.5 rounded-xl hover:from-purple-600 hover:to-pink-600 transition font-medium shadow-md hover:shadow-lg"
+          >
+            <Sparkles size={18} />
+            AI 智能分类
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-gold-500 text-white px-5 py-2.5 rounded-xl hover:bg-gold-600 transition font-medium"
+          >
+            <Plus size={18} />
+            创建相册
+          </button>
+        </div>
       </div>
 
       {albums.length === 0 ? (

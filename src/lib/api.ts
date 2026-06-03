@@ -11,9 +11,17 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   media: {
-    upload: async (files: File[]): Promise<any> => {
+    upload: async (files: File[], albumId?: string, videoThumbnails?: Map<string, Blob>): Promise<any> => {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
+      if (albumId) {
+        form.append('albumId', albumId)
+      }
+      if (videoThumbnails) {
+        videoThumbnails.forEach((blob, filename) => {
+          form.append('thumbnails', blob, `thumb_${filename}.jpg`)
+        })
+      }
       return request('/media/upload', { method: 'POST', body: form })
     },
     list: (params?: Record<string, any>) => {
@@ -73,5 +81,8 @@ export const api = {
   },
   stats: {
     get: () => request<any>('/stats'),
+  },
+  ai: {
+    classify: (albumId?: string) => request<any>(`/ai/classify/${albumId || 'all'}`),
   },
 }

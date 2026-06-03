@@ -1,9 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CloudUpload, Check, FileImage, FileVideo } from 'lucide-react'
+import { CloudUpload, Check, FileImage, FileVideo, FolderOpen } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { cn } from '@/lib/utils'
+import { generateVideoThumbnail } from '@/lib/utils'
+import type { Album } from '@/types'
+import { CATEGORY_LABELS } from '@/types'
 
 interface UploadingFile {
   file: File
@@ -13,12 +16,19 @@ interface UploadingFile {
 
 export default function Upload() {
   const navigate = useNavigate()
-  const { addMedia } = useStore()
+  const { addMedia, albums, setAlbums } = useStore()
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([])
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (albums.length === 0) {
+      api.albums.list().then(setAlbums)
+    }
+  }, [albums.length, setAlbums])
 
   const handleFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files)
@@ -34,12 +44,33 @@ export default function Upload() {
 
     for (let i = 0; i < initial.length; i++) {
       setUploadingFiles((prev) =>
-        prev.map((f, idx) => (idx === i ? { ...f, progress: 50 } : f))
+        prev.map((f, idx) => (idx === i ? { ...f, progress: 30 } : f))
       )
     }
 
     try {
-      const result = await api.media.upload(fileArray)
+      const videoThumbnails = new Map<string, Blob>()
+      const videoFiles = fileArray.filter(f => f.type.startsWith('video/'))
+      
+      if (videoFiles.length > 0) {
+        setUploadingFiles((prev) =>
+          prev.map((f) => f.file.type.startsWith('video/') ? { ...f, progress: 50 } : f)
+        )
+        
+        const thumbnailPromises = videoFiles.map(async (vf) => {
+          try {
+            const blob = await generateVideoThumbnail(vf)
+            videoThumbnails.set(vf.name, blob)
+          } catch {}
+        })
+        await Promise.all(thumbnailPromises)
+      }
+
+      setUploadingFiles((prev) =>
+        prev.map((f) => ({ ...f, progress: 70 }))
+      )
+
+      const result = await api.media.upload(fileArray, selectedAlbumId || undefined, videoThumbnails.size > 0 ? videoThumbnails : undefined)
       const items = Array.isArray(result) ? result : []
 
       setUploadingFiles((prev) =>
@@ -53,7 +84,11 @@ export default function Upload() {
       setUploadedUrls(items.map((m: any) => m.url || ''))
 
       setTimeout(() => {
-        navigate('/')
+        if (selectedAlbumId) {
+          navigate(`/albums/${selectedAlbumId}`)
+        } else {
+          navigate('/')
+        }
       }, 1500)
     } catch {
       setUploadingFiles((prev) =>
@@ -119,6 +154,26 @@ export default function Upload() {
           className="hidden"
         />
       </div>
+
+      {albums.length > 0 && (
+        <div className="mt-6">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+            <FolderOpen size={14} /> 归入相册（可选）
+          </label>
+          <select
+            value={selectedAlbumId}
+            onChange={(e) => setSelectedAlbumId(e.target.value)}
+            className="w-full md:w-80 border border-gold-300 rounded-lg px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink"
+          >
+            <option value="">不选择相册，仅上传到时间线</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.id}>
+                {album.name} ({CATEGORY_LABELS[album.category]} - {album.mediaCount} 项)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {uploadingFiles.length > 0 && (
         <div className="mt-8 space-y-3">

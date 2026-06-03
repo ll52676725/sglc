@@ -6,6 +6,7 @@ import AlbumDetail from "@/pages/AlbumDetail";
 import Upload from "@/pages/Upload";
 import Biography from "@/pages/Biography";
 import MediaDetail from "@/pages/MediaDetail";
+import AIClassify from "@/pages/AIClassify";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/upload" element={<Upload />} />
           <Route path="/biography" element={<Biography />} />
           <Route path="/media/:id" element={<MediaDetail />} />
+          <Route path="/ai-classify" element={<AIClassify />} />
         </Route>
       </Routes>
     </Router>
