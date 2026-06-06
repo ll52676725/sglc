@@ -45,6 +45,7 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
   const [showTagInput, setShowTagInput] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const MAX_RECORDING_DURATION = 60
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([])
@@ -172,15 +173,31 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
     const toAdd = files.slice(0, remaining)
     if (toAdd.length === 0) return
 
-    setSelectedFiles(prev => [...prev, ...toAdd])
+    const validFiles: File[] = []
+    const invalidNames: string[] = []
 
     for (const file of toAdd) {
       try {
         const duration = await getAudioDuration(file)
+        if (duration > MAX_RECORDING_DURATION) {
+          invalidNames.push(file.name)
+          continue
+        }
+        validFiles.push(file)
         setPreviewUrls(prev => [...prev, { url: URL.createObjectURL(file), type: 'audio', duration }])
       } catch {
+        validFiles.push(file)
         setPreviewUrls(prev => [...prev, { url: URL.createObjectURL(file), type: 'audio' }])
       }
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles])
+    }
+
+    if (invalidNames.length > 0) {
+      setRecordingError(`以下音频文件超过 ${MAX_RECORDING_DURATION} 秒限制，已跳过：${invalidNames.join('、')}`)
+      setTimeout(() => setRecordingError(''), 5000)
     }
 
     if (e.target) e.target.value = ''
@@ -212,7 +229,12 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
       setRecordingTime(0)
 
       recordingTimerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => prev + 1)
+        setRecordingTime(prev => {
+          if (prev + 1 >= MAX_RECORDING_DURATION) {
+            setTimeout(stopRecording, 100)
+          }
+          return prev + 1
+        })
       }, 1000)
 
     } catch (err: any) {
@@ -521,14 +543,14 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition',
                   isRecording
-                    ? 'bg-red-500 text-white animate-pulse'
+                    ? 'bg-red-500 text-white'
                     : 'bg-gold-50 text-ink/50 hover:bg-gold-100'
                 )}
               >
                 {isRecording ? (
                   <>
-                    <Square size={14} fill="currentColor" />
-                    录音中 {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                    <Square size={14} fill="currentColor" className={recordingTime >= MAX_RECORDING_DURATION - 10 ? 'animate-pulse' : ''} />
+                    录音中 {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}/{MAX_RECORDING_DURATION}s
                   </>
                 ) : (
                   <>
@@ -537,6 +559,11 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
                   </>
                 )}
               </button>
+              {isRecording && recordingTime >= MAX_RECORDING_DURATION - 10 && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  即将达到最大时长
+                </div>
+              )}
             </div>
 
             <button

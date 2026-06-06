@@ -12,7 +12,7 @@ let db: Database | null = null
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL CHECK(type IN ('photo', 'video')),
+  type TEXT NOT NULL,
   filename TEXT NOT NULL,
   url TEXT NOT NULL,
   thumbnail_url TEXT NOT NULL,
@@ -142,6 +142,41 @@ async function runMigrations(database: Database) {
     for (const col of newColumns) {
       if (!mediaColumnNames.includes(col.name)) {
         run(database, `ALTER TABLE media ADD COLUMN ${col.name} ${col.type}`)
+      }
+    }
+
+    const checkConstraint = mediaColumns.find((col: any) => col.name === 'type')
+    if (checkConstraint) {
+      const typeCheck = String(checkConstraint.type || '')
+      if (typeCheck.includes("CHECK") && !typeCheck.includes("audio")) {
+        try {
+          run(database, `
+            CREATE TABLE IF NOT EXISTS media_new (
+              id TEXT PRIMARY KEY,
+              type TEXT NOT NULL,
+              filename TEXT NOT NULL,
+              url TEXT NOT NULL,
+              thumbnail_url TEXT NOT NULL,
+              date_taken TEXT,
+              location TEXT DEFAULT '',
+              description TEXT DEFAULT '',
+              duration REAL DEFAULT 0,
+              width INTEGER DEFAULT 0,
+              height INTEGER DEFAULT 0,
+              hls_master_url TEXT DEFAULT '',
+              video_qualities TEXT DEFAULT '[]',
+              processing_status TEXT DEFAULT 'completed',
+              processing_id TEXT DEFAULT '',
+              created_at TEXT DEFAULT (datetime('now')),
+              updated_at TEXT DEFAULT (datetime('now'))
+            );
+          `)
+          run(database, `INSERT INTO media_new SELECT * FROM media`)
+          run(database, `DROP TABLE media`)
+          run(database, `ALTER TABLE media_new RENAME TO media`)
+        } catch (e) {
+          console.log('Skip type constraint migration:', e)
+        }
       }
     }
   } catch (e) {

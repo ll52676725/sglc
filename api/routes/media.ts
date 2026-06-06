@@ -50,9 +50,13 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
     for (const file of mediaFiles) {
       const id = v4()
       const isVideo = file.mimetype.startsWith('video/')
-      const type = isVideo ? 'video' : 'photo'
+      const isAudio = file.mimetype.startsWith('audio/')
+      let type = 'photo'
+      if (isVideo) type = 'video'
+      else if (isAudio) type = 'audio'
+      
       const url = `/uploads/${file.filename}`
-      let thumbnailUrl = isVideo ? '' : url
+      let thumbnailUrl = (isVideo || isAudio) ? '' : url
 
       if (isVideo && thumbnailMap.has(file.originalname)) {
         thumbnailUrl = thumbnailMap.get(file.originalname)!
