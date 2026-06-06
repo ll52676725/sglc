@@ -599,7 +599,7 @@ export default function MemoryCollection() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div id="quick-actions" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <QuickActionCard
           icon={PenLine}
           title="发布动态"

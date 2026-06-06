@@ -1,16 +1,27 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Camera, FolderTree, BookOpen, Feather, Sparkles, ChevronRight } from "lucide-react";
+import { Camera, FolderTree, BookOpen, Feather, Sparkles, ChevronRight, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import OnboardingModal from "./OnboardingModal";
+import { useStore } from "@/store/useStore";
 
 const navItems = [
-  { to: "/", label: "记忆收集", icon: Camera, description: "发布动态、上传照片" },
-  { to: "/organize", label: "智能整理", icon: FolderTree, description: "AI分类、相册管理" },
-  { to: "/biography", label: "传记工坊", icon: BookOpen, description: "生成、编辑传记" },
+  { to: "/", label: "记忆收集", icon: Camera, description: "发布动态、上传照片", id: "nav-collect" },
+  { to: "/organize", label: "智能整理", icon: FolderTree, description: "AI分类、相册管理", id: "nav-organize" },
+  { to: "/biography", label: "传记工坊", icon: BookOpen, description: "生成、编辑传记", id: "nav-biography" },
 ];
 
 export default function Layout() {
+  const { setShowOnboarding, setOnboardingStep } = useStore();
+
+  const handleOpenOnboarding = () => {
+    setOnboardingStep(0);
+    setShowOnboarding(true);
+  };
+
   return (
     <div className="flex">
+      <OnboardingModal />
+      
       <aside className="fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-gold-900/90 to-gold-800/90 backdrop-blur-md flex flex-col border-r border-gold-700/30">
         <div className="px-6 py-6 border-b border-gold-700/30">
           <h1 className="font-display text-2xl text-gold-100 flex items-center gap-3">
@@ -20,19 +31,21 @@ export default function Layout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-2">
-          {navItems.map(({ to, label, icon: Icon, description }) => (
+          {navItems.map(({ to, label, icon: Icon, description, id }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/"}
             >
               {({ isActive }) => (
-                <div className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-body transition-all duration-200 group cursor-pointer",
-                  isActive
-                    ? "bg-gold-500/30 text-gold-200"
-                    : "text-gold-300/70 hover:text-gold-100 hover:bg-gold-500/10"
-                )}>
+                <div
+                  id={id}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-body transition-all duration-200 group cursor-pointer",
+                    isActive
+                      ? "bg-gold-500/30 text-gold-200"
+                      : "text-gold-300/70 hover:text-gold-100 hover:bg-gold-500/10"
+                  )}>
                   <div className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
                     isActive ? "bg-gold-500/40" : "bg-gold-500/10 group-hover:bg-gold-500/20"
@@ -53,8 +66,15 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="px-6 py-6 border-t border-gold-700/30 flex items-center justify-center">
+        <div className="px-6 py-6 border-t border-gold-700/30 flex items-center justify-between">
           <Feather className="w-5 h-5 text-gold-500/50" />
+          <button
+            onClick={handleOpenOnboarding}
+            className="p-2 rounded-lg text-gold-400/60 hover:text-gold-300 hover:bg-gold-700/30 transition-all"
+            title="使用引导"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
         </div>
       </aside>
 

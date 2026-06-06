@@ -10,6 +10,8 @@ interface AppState {
   selectedYear: number | null
   selectedMonth: number | null
   loading: boolean
+  showOnboarding: boolean
+  onboardingStep: number
 
   setMedia: (media: MediaItem[]) => void
   addMedia: (items: MediaItem[]) => void
@@ -35,6 +37,26 @@ interface AppState {
   setSelectedYear: (year: number | null) => void
   setSelectedMonth: (month: number | null) => void
   setLoading: (loading: boolean) => void
+
+  setShowOnboarding: (show: boolean) => void
+  setOnboardingStep: (step: number) => void
+  nextOnboardingStep: () => void
+  prevOnboardingStep: () => void
+  completeOnboarding: () => void
+}
+
+const getInitialOnboardingState = () => {
+  if (typeof window !== 'undefined') {
+    const completed = localStorage.getItem('onboarding_completed')
+    return {
+      showOnboarding: !completed,
+      onboardingStep: 0,
+    }
+  }
+  return {
+    showOnboarding: false,
+    onboardingStep: 0,
+  }
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -46,6 +68,7 @@ export const useStore = create<AppState>((set) => ({
   selectedYear: null,
   selectedMonth: null,
   loading: false,
+  ...getInitialOnboardingState(),
 
   setMedia: (media) => set({ media }),
   addMedia: (items) => set((s) => ({ media: [...items, ...s.media] })),
@@ -90,4 +113,15 @@ export const useStore = create<AppState>((set) => ({
   setSelectedYear: (year) => set({ selectedYear: year }),
   setSelectedMonth: (month) => set({ selectedMonth: month }),
   setLoading: (loading) => set({ loading }),
+
+  setShowOnboarding: (show) => set({ showOnboarding: show }),
+  setOnboardingStep: (step) => set({ onboardingStep: step }),
+  nextOnboardingStep: () => set((s) => ({ onboardingStep: s.onboardingStep + 1 })),
+  prevOnboardingStep: () => set((s) => ({ onboardingStep: Math.max(0, s.onboardingStep - 1) })),
+  completeOnboarding: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('onboarding_completed', 'true')
+    }
+    set({ showOnboarding: false, onboardingStep: 0 })
+  },
 }))
