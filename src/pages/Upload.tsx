@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CloudUpload, Check, FileImage, FileVideo, FolderOpen, Zap, ArrowRight } from 'lucide-react'
+import { CloudUpload, Check, FileImage, FileVideo, FolderOpen, Zap, ArrowRight, Settings, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { cn } from '@/lib/utils'
-import { generateVideoThumbnail, compressVideo, formatFileSize } from '@/lib/utils'
+import { generateVideoThumbnail, compressVideo, formatFileSize, COMPRESSION_PRESETS, VIDEO_CODECS, VIDEO_FORMATS, getSupportedCodecs, getSupportedFormats, type CompressionQuality, type VideoCodec, type VideoFormat } from '@/lib/utils'
 import type { Album } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
@@ -15,6 +15,9 @@ interface UploadingFile {
   progress: number
   status: 'pending' | 'compressing' | 'uploading' | 'processing' | 'done' | 'error'
   statusText: string
+  codec?: string
+  format?: string
+  quality?: string
 }
 
 export default function Upload() {
@@ -26,7 +29,18 @@ export default function Upload() {
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([])
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('')
   const [enableCompression, setEnableCompression] = useState(true)
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
+  const [compressionQuality, setCompressionQuality] = useState<CompressionQuality>('medium')
+  const [videoCodec, setVideoCodec] = useState<VideoCodec>('vp8')
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>('webm')
+  const [supportedCodecs, setSupportedCodecs] = useState<VideoCodec[]>([])
+  const [supportedFormats, setSupportedFormats] = useState<VideoFormat[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setSupportedCodecs(getSupportedCodecs())
+    setSupportedFormats(getSupportedFormats())
+  }, [])
 
   useEffect(() => {
     if (albums.length === 0) {
@@ -78,9 +92,9 @@ export default function Upload() {
           if (enableCompression) {
             try {
               const compressedFile = await compressVideo(file, {
-                maxWidth: 1280,
-                maxHeight: 720,
-                targetBitrate: 2500000,
+                quality: compressionQuality,
+                codec: videoCodec,
+                format: videoFormat,
                 onProgress: (percent) => {
                   setUploadingFiles((prev) =>
                     prev.map((f, idx) =>
@@ -103,6 +117,9 @@ export default function Upload() {
                           progress: 40,
                           status: 'uploading',
                           statusText: '上传中...',
+                          codec: videoCodec,
+                          format: videoFormat,
+                          quality: compressionQuality,
                         }
                       : f
                   )
@@ -272,7 +289,7 @@ export default function Upload() {
           </div>
         )}
 
-        <div>
+        <div className="flex-1 min-w-[280px]">
           <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
             <Zap size={14} /> 视频智能压缩
           </label>
@@ -285,7 +302,91 @@ export default function Upload() {
             />
             <span className="text-sm text-ink/70">上传前自动压缩视频（推荐）</span>
           </label>
+          
+          {enableCompression && (
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+              className="flex items-center gap-1.5 mt-2 text-sm text-gold-600 hover:text-gold-700 transition"
+            >
+              <Settings size={14} />
+              <span>高级设置</span>
+              {showAdvancedSettings ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          )}
         </div>
+
+        {enableCompression && showAdvancedSettings && (
+          <div className="w-full mt-4 p-4 bg-gold-50/50 rounded-xl border border-gold-200/50 space-y-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                压缩质量
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {(Object.keys(COMPRESSION_PRESETS) as CompressionQuality[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCompressionQuality(key)}
+                    className={cn(
+                      'px-3 py-2 rounded-lg text-sm transition border',
+                      compressionQuality === key
+                        ? 'bg-gold-500 text-white border-gold-500'
+                        : 'bg-white text-ink/70 border-gold-200 hover:border-gold-300'
+                    )}
+                  >
+                    <div className="font-medium">{COMPRESSION_PRESETS[key].label}</div>
+                    <div className="text-xs opacity-70 mt-0.5">{COMPRESSION_PRESETS[key].description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                  编码格式
+                </label>
+                <select
+                  value={videoCodec}
+                  onChange={(e) => setVideoCodec(e.target.value as VideoCodec)}
+                  className="w-full border border-gold-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink text-sm"
+                >
+                  {VIDEO_CODECS.filter(c => supportedCodecs.includes(c.value)).map((codec) => (
+                    <option key={codec.value} value={codec.value}>
+                      {codec.label} - {codec.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                  输出格式
+                </label>
+                <select
+                  value={videoFormat}
+                  onChange={(e) => setVideoFormat(e.target.value as VideoFormat)}
+                  className="w-full border border-gold-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink text-sm"
+                >
+                  {VIDEO_FORMATS.filter(f => supportedFormats.includes(f.value)).map((format) => (
+                    <option key={format.value} value={format.value}>
+                      {format.label} - {format.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
+              <Info size={14} className="flex-shrink-0 mt-0.5" />
+              <p>
+                压缩后的视频将自动上传至服务器存储，您可以在相册或时间线中查看。
+                {compressionQuality !== 'original' && ' 压缩可显著减少上传时间和存储空间。'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {uploadingFiles.length > 0 && (
@@ -332,13 +433,20 @@ export default function Upload() {
                   </span>
                 </div>
                 {uf.file.type.startsWith('video/') && uf.compressedSize && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-ink/50">
-                    <span>{formatFileSize(uf.originalSize)}</span>
-                    <ArrowRight size={10} />
-                    <span className="text-green-600 font-medium">{formatFileSize(uf.compressedSize)}</span>
-                    <span className="text-green-600">
-                      节省 {Math.round((1 - uf.compressedSize / uf.originalSize) * 100)}%
-                    </span>
+                  <div className="space-y-1 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-ink/50">
+                      <span>{formatFileSize(uf.originalSize)}</span>
+                      <ArrowRight size={10} />
+                      <span className="text-green-600 font-medium">{formatFileSize(uf.compressedSize)}</span>
+                      <span className="text-green-600">
+                        节省 {Math.round((1 - uf.compressedSize / uf.originalSize) * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-ink/40">
+                      {uf.codec && <span className="bg-gold-100 px-1.5 py-0.5 rounded">{uf.codec.toUpperCase()}</span>}
+                      {uf.format && <span className="bg-gold-100 px-1.5 py-0.5 rounded">{uf.format.toUpperCase()}</span>}
+                      {uf.quality && <span className="bg-parchment px-1.5 py-0.5 rounded">{COMPRESSION_PRESETS[uf.quality as CompressionQuality]?.label}</span>}
+                    </div>
                   </div>
                 )}
               </div>
@@ -350,6 +458,31 @@ export default function Upload() {
 
       {uploadedUrls.length > 0 && !uploading && (
         <div className="mt-8">
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-green-500 rounded-full p-1.5 flex-shrink-0">
+                <Check className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-medium text-green-800">上传成功！</h3>
+                <p className="text-sm text-green-700 mt-1">
+                  共上传 {uploadedUrls.filter(Boolean).length} 个文件，已保存到您的记忆库中。
+                </p>
+                <p className="text-sm text-green-600 mt-1">
+                  📍 您可以在 <span className="font-medium">时间线</span> 或 
+                  {selectedAlbumId ? (
+                    <span className="font-medium">所选相册</span>
+                  ) : (
+                    <span className="font-medium">相册</span>
+                  )} 中查看这些文件。
+                </p>
+                <p className="text-xs text-green-500 mt-2">
+                  💡 视频文件已按您选择的设置压缩，可在详情页查看压缩信息。
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <h2 className="font-display text-lg text-ink mb-4">最近上传</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {uploadedUrls.filter(Boolean).map((url, idx) => (

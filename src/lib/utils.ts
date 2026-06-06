@@ -56,12 +56,128 @@ export function generateVideoThumbnail(file: File, seekTime = 1): Promise<Blob> 
   })
 }
 
+export type VideoCodec = 'vp8' | 'vp9' | 'h264'
+export type VideoFormat = 'webm' | 'mp4'
+export type CompressionQuality = 'low' | 'medium' | 'high' | 'original'
+
 export interface CompressOptions {
   maxWidth?: number
   maxHeight?: number
   targetBitrate?: number
   fps?: number
+  codec?: VideoCodec
+  format?: VideoFormat
+  quality?: CompressionQuality
   onProgress?: (percent: number) => void
+}
+
+export interface CompressionPreset {
+  name: string
+  label: string
+  maxWidth: number
+  maxHeight: number
+  targetBitrate: number
+  fps: number
+  description: string
+}
+
+export const COMPRESSION_PRESETS: Record<CompressionQuality, CompressionPreset> = {
+  low: {
+    name: 'low',
+    label: '低质量（小文件）',
+    maxWidth: 640,
+    maxHeight: 360,
+    targetBitrate: 800000,
+    fps: 24,
+    description: '适合网络分享，文件最小'
+  },
+  medium: {
+    name: 'medium',
+    label: '中等质量（推荐）',
+    maxWidth: 1280,
+    maxHeight: 720,
+    targetBitrate: 2500000,
+    fps: 30,
+    description: '平衡质量和文件大小'
+  },
+  high: {
+    name: 'high',
+    label: '高质量',
+    maxWidth: 1920,
+    maxHeight: 1080,
+    targetBitrate: 5000000,
+    fps: 30,
+    description: '更清晰的画面，文件较大'
+  },
+  original: {
+    name: 'original',
+    label: '保持原画',
+    maxWidth: 3840,
+    maxHeight: 2160,
+    targetBitrate: 8000000,
+    fps: 60,
+    description: '尽可能保持原始质量'
+  }
+}
+
+export const VIDEO_CODECS: Array<{ value: VideoCodec; label: string; description: string }> = [
+  { value: 'vp8', label: 'VP8', description: '兼容性好，压缩速度快' },
+  { value: 'vp9', label: 'VP9', description: '压缩率高，文件更小' },
+  { value: 'h264', label: 'H.264', description: '通用格式，兼容性最好' }
+]
+
+export const VIDEO_FORMATS: Array<{ value: VideoFormat; label: string; description: string }> = [
+  { value: 'webm', label: 'WebM', description: '开源格式，VP8/VP9 编码' },
+  { value: 'mp4', label: 'MP4', description: '通用格式，H.264 编码' }
+]
+
+function getMimeTypeForCodec(codec: VideoCodec, format: VideoFormat): string {
+  if (format === 'mp4') {
+    return 'video/mp4;codecs=avc1.42E01E'
+  }
+  switch (codec) {
+    case 'vp9':
+      return 'video/webm;codecs=vp9,opus'
+    case 'vp8':
+    default:
+      return 'video/webm;codecs=vp8,opus'
+  }
+}
+
+function getSupportedMimeTypes(): string[] {
+  const types: string[] = []
+  const candidates = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4',
+  ]
+  for (const type of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
+      types.push(type)
+    }
+  }
+  return types
+}
+
+export function getSupportedCodecs(): VideoCodec[] {
+  const supported = getSupportedMimeTypes()
+  const codecs: VideoCodec[] = []
+  if (supported.some(t => t.includes('vp9'))) codecs.push('vp9')
+  if (supported.some(t => t.includes('vp8'))) codecs.push('vp8')
+  if (supported.some(t => t.includes('avc1') || t.includes('h264') || t.includes('mp4'))) codecs.push('h264')
+  return codecs
+}
+
+export function getSupportedFormats(): VideoFormat[] {
+  const supported = getSupportedMimeTypes()
+  const formats: VideoFormat[] = []
+  if (supported.some(t => t.includes('webm'))) formats.push('webm')
+  if (supported.some(t => t.includes('mp4'))) formats.push('mp4')
+  return formats
 }
 
 export async function compressVideo(
@@ -69,12 +185,17 @@ export async function compressVideo(
   options: CompressOptions = {}
 ): Promise<File> {
   const {
-    maxWidth = 1280,
-    maxHeight = 720,
-    targetBitrate = 2500000,
-    fps = 30,
+    quality = 'medium',
+    codec = 'vp8',
+    format = 'webm',
     onProgress,
   } = options
+
+  const preset = COMPRESSION_PRESETS[quality]
+  let maxWidth = options.maxWidth ?? preset.maxWidth
+  let maxHeight = options.maxHeight ?? preset.maxHeight
+  let targetBitrate = options.targetBitrate ?? preset.targetBitrate
+  let fps = options.fps ?? preset.fps
 
   if (typeof MediaRecorder === 'undefined' || !file.type.startsWith('video/')) {
     return file
@@ -144,14 +265,18 @@ export async function compressVideo(
       return file
     }
 
-    const mimeTypes = [
+    const preferredMimeType = getMimeTypeForCodec(codec, format)
+    const fallbackMimeTypes = [
+      preferredMimeType,
       'video/webm;codecs=vp8,opus',
       'video/webm;codecs=vp8',
       'video/webm',
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4',
     ]
     
     let selectedMimeType = ''
-    for (const type of mimeTypes) {
+    for (const type of fallbackMimeTypes) {
       if (MediaRecorder.isTypeSupported(type)) {
         selectedMimeType = type
         break
@@ -223,9 +348,14 @@ export async function compressVideo(
           return
         }
         
-        const ext = selectedMimeType.includes('webm') ? '.webm' : '.mp4'
+        let ext = '.webm'
+        if (selectedMimeType.includes('mp4')) {
+          ext = '.mp4'
+        } else if (selectedMimeType.includes('webm')) {
+          ext = '.webm'
+        }
         const baseName = file.name.replace(/\.[^/.]+$/, '')
-        const newFileName = baseName + ext
+        const newFileName = baseName + '_compressed' + ext
         const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
         
         finish(compressedFile)

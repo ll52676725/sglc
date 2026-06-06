@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check, Loader2, Clock } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check, Loader2, Clock, FileVideo, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { CATEGORY_LABELS } from '@/types'
@@ -291,6 +291,72 @@ export default function MediaDetail() {
               </div>
             )}
           </div>
+
+          {item.type === 'video' && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                <FileVideo size={14} /> 视频信息
+              </label>
+              <div className="bg-white/50 rounded-lg p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                <span className="text-ink/50">文件名</span>
+                <span className="text-ink/80 truncate max-w-[160px]" title={item.filename}>{item.filename}</span>
+              </div>
+              {item.duration !== undefined && item.duration > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-ink/50">时长</span>
+                  <span className="text-ink/80">{Math.floor(item.duration / 60)}分{Math.floor(item.duration % 60)}秒</span>
+                </div>
+              )}
+              {item.width && item.height && (
+                <div className="flex justify-between">
+                  <span className="text-ink/50">分辨率</span>
+                  <span className="text-ink/80">{item.width} × {item.height}</span>
+                </div>
+              )}
+              {item.url && (
+                <div className="flex justify-between">
+                  <span className="text-ink/50">格式</span>
+                  <span className="text-ink/80 uppercase">{item.url.split('.').pop()}</span>
+                </div>
+              )}
+              {item.videoQualities && item.videoQualities.length > 0 && (
+                <div className="pt-2 border-t border-gold-100">
+                  <p className="text-ink/50 text-xs mb-1">可用画质</p>
+                  <div className="flex flex-wrap gap-1">
+                    {item.videoQualities.map((q, i) => (
+                      <span key={i} className="bg-gold-100 text-gold-700 px-2 py-0.5 rounded text-xs">
+                        {q.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {item.processingStatus && (
+                <div className="pt-2 border-t border-gold-100">
+                  <div className="flex items-center gap-2">
+                    {item.processingStatus === 'processing' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                        <span className="text-blue-600 text-xs">转码处理中...</span>
+                      </>
+                    ) : item.processingStatus === 'completed' ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-500" />
+                        <span className="text-green-600 text-xs">处理完成</span>
+                      </>
+                    ) : item.processingStatus === 'failed' ? (
+                      <>
+                        <X className="w-4 h-4 text-red-500" />
+                        <span className="text-red-600 text-xs">处理失败</span>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          )}
         </div>
 
         <button
