@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { v4 } from 'uuid'
 import { getDb, all, get, run } from '../db.js'
-import { generateWuxiaBiography, type WuxiaStyle } from '../lib/wuxia-biography.js'
+import { generateWuxiaBiographyDeep, type WuxiaStyle } from '../lib/wuxia-biography-deep.js'
 
 const router = Router()
 
@@ -622,17 +622,17 @@ function groupMomentsByMonth(moments: any[]): Map<string, any[]> {
   return groups
 }
 
-function generateBiographyFromMoments(
+async function generateBiographyFromMoments(
   moments: any[],
   style: string,
-): { title: string; chapters: Array<{ title: string; content: string; momentIds: string[]; mediaIds: string[]; date: string }> } {
+): Promise<{ title: string; chapters: Array<{ title: string; content: string; momentIds: string[]; mediaIds: string[]; date: string }> }> {
   const sortedMoments = [...moments].sort((a, b) => 
     new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime()
   )
   
   if (style === 'wuxia') {
-    const wuxiaStyle: WuxiaStyle = 'mixed'
-    return generateWuxiaBiography(sortedMoments, wuxiaStyle)
+    const wuxiaStyle: WuxiaStyle = Math.random() > 0.5 ? 'jinyong' : 'gulong'
+    return await generateWuxiaBiographyDeep(sortedMoments, wuxiaStyle)
   }
   
   const template = STORY_TEMPLATES[style] || STORY_TEMPLATES.casual
@@ -774,7 +774,7 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    const { title, chapters } = generateBiographyFromMoments(momentsWithMedia, style)
+    const { title, chapters } = await generateBiographyFromMoments(momentsWithMedia, style)
 
     const id = v4()
     const contentJson = JSON.stringify(chapters)
