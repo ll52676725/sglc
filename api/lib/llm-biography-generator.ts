@@ -724,10 +724,161 @@ const WRITER_CONFIGS: Record<string, any> = {
   ]
 }
 
+【世界观一致性要求】
+- 保持旅行/流浪的背景统一，不要突然切换到完全不相关的场景
+- 人物的行为和语言要符合旅行者的身份
+- 避免出现与旅行主题无关的现代都市细节
+
+【输出JSON结构】
+{
+  "title": "浪漫的标题，如《撒哈拉的日记》",
+  "overallOutline": "400字左右的旅行主线",
+  "worldSetting": "明确的故事世界设定，如'撒哈拉沙漠周边的旅行，70年代的异域风情'",
+  "protagonist": {
+    "name": "三毛/Echo/我",
+    "personality": "热情、自由、浪漫、爱生活",
+    "background": "流浪远方的旅人",
+    "growthArc": "旅途中的收获与成长"
+  },
+  "chapterPlans": [
+    {
+      "monthKey": "YYYY-MM",
+      "chapterTitle": "有异域风情的标题",
+      "plotSummary": "这一章的旅行故事，150字左右",
+      "keyScenes": ["2-3个异域风情的场景"],
+      "characterDevelopment": "这一章的感悟",
+      "transitionFromPrev": "承接上一章的过渡设计",
+      "momentIntegrations": ["3个将生活素材转化为旅行故事的方式，如'去超市买菜→在当地的集市上和小贩讨价还价，虽然语言不通但很有趣'"]
+    }
+  ]
+}
+
 【重要】写旅行随笔，让心灵和身体都在路上！`,
     introLength: 350,
     chapterLength: 1000,
     outroLength: 350,
+  },
+  jinyong: {
+    name: '金庸',
+    genre: '武侠小说',
+    outlinePrompt: `你是金庸武侠小说的创作总设计师。请根据生活记录素材，设计一部金庸风格的完整武侠小说大纲。
+
+【金庸风格核心】
+- 世界观：中国古代江湖，武林门派，侠义精神，无现代元素
+- 人物：江湖儿女，有家国情怀，性格鲜明，成长弧光完整
+- 情节：恩怨情仇，武功秘籍，门派争斗，奇遇成长
+- 意象：剑、酒、江湖、门派、秘籍、山水、客栈
+
+【绝对禁止】
+❌ 绝对禁止出现任何现代元素：高铁、飞机、汽车、手机、电脑、网络、减肥、健身、外卖、快递等
+❌ 绝对禁止出现现代地名：杭州（改为临安/钱塘）、北京（改为燕京/大都）、上海（改为松江/沪上）等
+❌ 绝对禁止现代概念：上班、加班、打卡、工资、减肥、健身等
+❌ 绝对禁止穿越、混搭、时空错乱
+
+【创作原则】
+1. 先有完整的武侠世界观和故事架构，生活记录只是素材
+2. 所有现代生活内容必须转化为古代武侠场景
+3. 人物言行必须符合古代江湖人的身份
+4. 情节要有伏笔有呼应，章节之间紧密关联
+5. 地理空间要统一，人物移动要有合理的江湖路径
+
+【生活素材转化参考】
+- 坐高铁/坐飞机→骑快马、乘船、走官道、施展轻功
+- 去杭州→去临安/钱塘/西湖
+- 减肥→修炼内功、打磨招式、行走江湖历练
+- 上班/加班→在门派当值、闭关修炼、护送镖物
+- 开会→门派议事、武林大会
+- 吃饭聚餐→客栈打尖、江湖酒宴、同门聚餐
+
+【输出JSON结构】
+{
+  "title": "典雅的小说标题，4-8字，如《江湖行》《红尘剑》",
+  "overallOutline": "500字左右完整故事大纲，包含：开篇引入、发展脉络、高潮、结局",
+  "worldSetting": "明确的武侠世界设定，如'南宋年间，江南武林，丐帮与江南七怪活跃的江湖'",
+  "protagonist": {
+    "name": "武侠味的名字，如凌云霄、沈剑秋、苏慕雪",
+    "personality": "人物性格，重情重义或孤傲狂放",
+    "background": "门派弟子/江湖浪子/没落世家/镖局镖师",
+    "growthArc": "从青涩到成熟的完整成长轨迹"
+  },
+  "chapterPlans": [
+    {
+      "monthKey": "YYYY-MM",
+      "chapterTitle": "对仗工整的回目，4-8字，如'风雪惊变''密室练功'",
+      "plotSummary": "这一回的完整情节，200字左右，有起承转合",
+      "keyScenes": ["3个关键武侠场景"],
+      "characterDevelopment": "这一回人物的心理变化和成长",
+      "transitionFromPrev": "承接上一回的过渡设计，如何从上一回的结尾自然引入本章",
+      "momentIntegrations": ["3个将生活素材转化为武侠情节的具体方式，如'加班到深夜→在密室中闭关修炼内功三天三夜'"]
+    }
+  ]
+}
+
+【重要】写真正的武侠小说，不是披着武侠皮的现代日记！所有内容必须在统一的古代武侠世界观内！`,
+    introLength: 500,
+    chapterLength: 1500,
+    outroLength: 450,
+  },
+  gulong: {
+    name: '古龙',
+    genre: '武侠小说',
+    outlinePrompt: `你是古龙武侠小说的创作总设计师。请根据生活记录素材，设计一部古龙风格的完整武侠小说大纲。
+
+【古龙风格核心】
+- 世界观：模糊的古代江湖，充满悬念和神秘感，无任何现代元素
+- 人物：孤独浪子，有过去有秘密，朋友少但知己，酒与剑是标配
+- 情节：悬疑开篇，意外转折，情理之中意料之外
+- 语言：短句多，留白多，有哲理，有禅意
+
+【绝对禁止】
+❌ 绝对禁止出现任何现代元素：高铁、飞机、汽车、手机、电脑、网络、减肥、健身、外卖、快递等
+❌ 绝对禁止出现明确的现代地名，所有地点都要用古意名称
+❌ 绝对禁止现代概念：上班、加班、打卡、工资、减肥、健身等
+❌ 绝对禁止穿越、混搭、时空错乱
+
+【创作原则】
+1. 先有完整的悬疑故事线，生活记录只是素材
+2. 所有现代生活内容必须转化为古龙式的江湖场景
+3. 人物言行要符合浪子/杀手/侠客的身份
+4. 每章要有悬念，结尾要有留白
+5. 保持古龙特有的疏离感和诗意
+
+【生活素材转化参考】
+- 坐高铁/坐飞机→一个人，一匹马，在路上
+- 去杭州→江南，烟雨，西湖边
+- 减肥→他已经三天没有吃饭了，只有酒
+- 上班/加班→他在等一个人，等了三天三夜
+- 开会→有人来了，是老朋友，也是老对手
+- 吃饭聚餐→酒，菜，还有人
+
+【输出JSON结构】
+{
+  "title": "简短有力的标题，2-4字，如《路》《剑》《夜》",
+  "overallOutline": "400字左右故事大纲，古龙式叙述，有悬疑感",
+  "worldSetting": "明确的江湖世界设定，如'没有年代的江湖，只有剑和酒，人和路'",
+  "protagonist": {
+    "name": "简洁有力的名字，2-3字，如李寻欢、傅红雪式的名字",
+    "personality": "人物性格，带点孤独和神秘感",
+    "background": "人物的神秘过去，剑客/浪子/杀手/隐士",
+    "growthArc": "这段时间人物的变化"
+  },
+  "chapterPlans": [
+    {
+      "monthKey": "YYYY-MM",
+      "chapterTitle": "短而有味道的标题，2-4字，如'夜雨''疑云''老友'",
+      "plotSummary": "这一章的情节，150字左右，古龙式叙述，要有悬疑",
+      "keyScenes": ["3个关键场景"],
+      "characterDevelopment": "这一章人物的变化",
+      "transitionFromPrev": "承接上一章的过渡设计",
+      "momentIntegrations": ["3个生活记录的融入方式，如'加班到深夜→他在黑暗中坐了一夜，灯没灭'"]
+    }
+  ]
+}
+
+【重要】写真正的古龙式武侠，所有内容必须在统一的江湖世界观内！`,
+    introLength: 300,
+    chapterLength: 1200,
+    outroLength: 300,
   },
 }
 
@@ -771,6 +922,7 @@ ${momentsText}
       return {
         title: parsed.title || '时光故事',
         overallOutline: parsed.overallOutline || '',
+        worldSetting: parsed.worldSetting || '',
         protagonist: parsed.protagonist || {
           name: '我',
           personality: '普通人',
@@ -787,6 +939,7 @@ ${momentsText}
   return {
     title: '时光故事',
     overallOutline: '',
+    worldSetting: '',
     protagonist: { name: '我', personality: '普通人', background: '平凡生活', growthArc: '慢慢成长' },
     chapterPlans: monthsList.map(m => ({
       monthKey: m,
@@ -807,10 +960,38 @@ async function generateChapter(
   chapterIndex: number,
   totalChapters: number,
   previousChapterEnding: string,
-  writerId: string
+  writerId: string,
+  worldSetting?: string
 ): Promise<string> {
   const momentsText = prepareMomentsForLLM(monthMoments)
   const config = WRITER_CONFIGS[writerId] || WRITER_CONFIGS.murakami
+
+  const isWuxia = writerId === 'jinyong' || writerId === 'gulong'
+
+  const worldSettingText = worldSetting ? `【世界设定（必须严格遵守）】
+${worldSetting}
+` : ''
+
+  const wuxiaStrictRules = isWuxia ? `
+【武侠世界观绝对禁令（违反将导致严重扣分）】
+❌ 绝对禁止：高铁、飞机、汽车、手机、电脑、网络、微信、支付宝等任何现代科技
+❌ 绝对禁止：减肥、健身、打卡、上班、加班、工资、外卖、快递等任何现代生活概念
+❌ 绝对禁止：直接使用杭州、北京、上海、深圳等现代地名，必须用古称
+❌ 绝对禁止：任何穿越、混搭、时空错乱的内容
+✅ 所有现代生活素材必须完全转化为古代武侠场景，不留任何现代痕迹
+` : ''
+
+  const coherenceRules = `
+【章节连贯性强制要求】
+1. 本章开头必须承接上一章结尾的内容和氛围，不能突兀跳转
+2. 上一章出现的人物、地点、线索，在本章要有合理的延续或交代
+3. 人物的性格、武功、身份在全书中保持一致，不能突然变化
+4. 地理空间移动要合理，不能瞬间从一个地方跳到另一个地方
+5. 本章结尾要为下一章留下自然的引子或悬念
+
+【本章过渡设计】
+${chapterPlan.transitionFromPrev || '自然承接上一章结尾的情节和氛围'}
+`
 
   const systemPrompt = `你是${config.name}，正在创作一部${config.genre}作品。
 
@@ -820,12 +1001,14 @@ async function generateChapter(
 背景：${protagonist.background}
 成长轨迹：${protagonist.growthArc}
 
+${worldSettingText}
 【故事总纲】
 ${fullOutline || '一段时光的故事。'}
 
 【上一章结尾】
 ${previousChapterEnding || '故事刚开始。'}
-
+${wuxiaStrictRules}
+${coherenceRules}
 【${config.name}风格写作要求】
 1. ${config.name}的独特文风
 2. 情节/氛围优先：先写好故事/意境，再自然融入生活素材
@@ -844,7 +1027,8 @@ ${previousChapterEnding || '故事刚开始。'}
 【重要提醒】
 - 重点是写作品，不是记录生活
 - 生活素材是灵感来源，不是写作主体
-- 让读者看到故事、感受到人物，而不是看到流水账`
+- 让读者看到故事、感受到人物，而不是看到流水账
+- 保持世界观的绝对统一和前后连贯`
 
   const userPrompt = `这是第${chapterIndex + 1}章，共${totalChapters}章。
 
@@ -859,7 +1043,7 @@ ${momentsText}
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt }
   ], {
-    temperature: 0.9,
+    temperature: 0.85,
     maxTokens: 3000
   })
 }
@@ -975,7 +1159,7 @@ export async function generateBiographyWithWriter(
   console.log(`[LLM] Generating full outline with writer: ${writerId}`)
 
   const outlineResult = await generateFullOutline(moments, startDate, endDate, writerId)
-  const { title, overallOutline, protagonist, chapterPlans } = outlineResult
+  const { title, overallOutline, protagonist, chapterPlans, worldSetting } = outlineResult
   console.log(`[LLM] Outline generated, title: ${title}, protagonist: ${protagonist.name}`)
 
   const chapters: ChapterData[] = []
@@ -1006,7 +1190,8 @@ export async function generateBiographyWithWriter(
       i,
       chapterPlans.length,
       previousChapterEnding,
-      writerId
+      writerId,
+      worldSetting
     )
 
     previousChapterEnding = chapterContent.slice(-300)
@@ -1178,7 +1363,8 @@ ${momentsText}
       existingChapterCount + i,
       existingChapterCount + chapterPlans.length,
       i === 0 ? lastChapterEnding : '',
-      writerId
+      writerId,
+      ''
     )
 
     const chapterDate = monthMoments[0]?.happened_at || startDate

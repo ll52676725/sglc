@@ -90,6 +90,7 @@ async function generateJinYongFullOutline(
 ): Promise<{
   title: string
   overallOutline: string
+  worldSetting: string
   protagonist: {
     name: string
     personality: string
@@ -102,6 +103,7 @@ async function generateJinYongFullOutline(
     plotSummary: string
     keyEvents: string[]
     characterDevelopment: string
+    transitionFromPrev?: string
     momentIntegrations: string[]
   }>
 }> {
@@ -117,10 +119,17 @@ async function generateJinYongFullOutline(
 3. 人物要有鲜明的性格和完整的成长弧光
 4. 情节要有起承转合，有伏笔有呼应
 
+【绝对禁止（违反将严重影响质量）】
+❌ 绝对禁止出现任何现代元素：高铁、飞机、汽车、手机、电脑、网络、微信、支付宝等
+❌ 绝对禁止出现现代概念：减肥、健身、打卡、上班、加班、工资、外卖、快递、KPI等
+❌ 绝对禁止直接使用现代地名：杭州→临安/钱塘/西湖，北京→燕京/大都，上海→松江/沪上
+❌ 绝对禁止穿越、混搭、时空错乱，所有内容必须在古代武侠世界观内
+
 【输出JSON结构】
 {
   "title": "小说总标题，4-8字，如《江湖行》《红尘剑》",
   "overallOutline": "500字左右的完整故事大纲，包含：开篇引入、发展脉络、高潮情节、结局走向，要像真正的武侠小说一样有起承转合",
+  "worldSetting": "明确的武侠世界设定，如'南宋嘉定年间，江南武林，丐帮与江南七怪活跃的江湖'",
   "protagonist": {
     "name": "给主角起一个武侠味的名字，如"凌云霄""沈剑秋""苏慕雪"等",
     "personality": "主角性格特点，2-3个关键词加描述",
@@ -134,6 +143,7 @@ async function generateJinYongFullOutline(
       "plotSummary": "这一回的完整故事情节，200字左右，要有：场景铺垫、事件发生、冲突、解决或悬念",
       "keyEvents": ["3个这一回中的关键武侠事件，如"巧遇高人""获得秘籍""大战山贼"等"],
       "characterDevelopment": "这一回中主角的心理变化或成长",
+      "transitionFromPrev": "承接上一回的过渡设计，如何从上一回结尾自然引入本章",
       "momentIntegrations": ["3个将生活记录融入情节的具体方式，如"加班到深夜→在密室中闭关修炼内功三天三夜""去公园散步→在御花园中偶遇公主"]
     }
   ]
@@ -171,6 +181,7 @@ ${momentsText}
       return {
         title: parsed.title || '江湖奇侠传',
         overallOutline: parsed.overallOutline || '',
+        worldSetting: parsed.worldSetting || '',
         protagonist: parsed.protagonist || {
           name: '凌云霄',
           personality: '重情重义，略带顽劣',
@@ -187,6 +198,7 @@ ${momentsText}
   return {
     title: '江湖奇侠传',
     overallOutline: '',
+    worldSetting: '',
     protagonist: {
       name: '凌云霄',
       personality: '重情重义，略带顽劣',
@@ -211,6 +223,7 @@ async function generateGuLongFullOutline(
 ): Promise<{
   title: string
   overallOutline: string
+  worldSetting: string
   protagonist: {
     name: string
     personality: string
@@ -223,6 +236,7 @@ async function generateGuLongFullOutline(
     plotSummary: string
     keyEvents: string[]
     characterDevelopment: string
+    transitionFromPrev?: string
     momentIntegrations: string[]
   }>
 }> {
@@ -244,10 +258,17 @@ async function generateGuLongFullOutline(
 3. 人物要有神秘感和孤独感
 4. 每章要有悬疑感和留白
 
+【绝对禁止（违反将严重影响质量）】
+❌ 绝对禁止出现任何现代元素：高铁、飞机、汽车、手机、电脑、网络、微信、支付宝等
+❌ 绝对禁止出现现代概念：减肥、健身、打卡、上班、加班、工资、外卖、快递、KPI等
+❌ 绝对禁止直接使用现代地名，所有地点都要用古意名称
+❌ 绝对禁止穿越、混搭、时空错乱，所有内容必须在江湖世界观内
+
 【输出JSON结构】
 {
   "title": "简短有力的标题，2-4字，如《路》《剑》《夜》",
   "overallOutline": "400字左右的故事大纲，古龙式的叙述，要有悬疑感",
+  "worldSetting": "明确的江湖世界设定，如'没有年代的江湖，只有剑和酒，人和路'",
   "protagonist": {
     "name": "简洁有力的名字，2-3字，如"李寻欢""傅红雪""楚留香"式的名字",
     "personality": "人物性格，带点孤独和神秘感",
@@ -261,6 +282,7 @@ async function generateGuLongFullOutline(
       "plotSummary": "这一章的情节，150字左右，古龙式叙述，要有悬疑",
       "keyEvents": ["3个关键事件"],
       "characterDevelopment": "这一章人物的变化",
+      "transitionFromPrev": "承接上一章的过渡设计",
       "momentIntegrations": ["3个生活记录的融入方式，如"加班到深夜→他在黑暗中坐了一夜，灯没灭""朋友聚会→有人来了，是老朋友"]
     }
   ]
@@ -296,6 +318,7 @@ ${momentsText}
       return {
         title: parsed.title || '江湖路',
         overallOutline: parsed.overallOutline || '',
+        worldSetting: parsed.worldSetting || '',
         protagonist: parsed.protagonist || {
           name: '叶孤鸿',
           personality: '沉默寡言，外冷内热',
@@ -312,6 +335,7 @@ ${momentsText}
   return {
     title: '江湖路',
     overallOutline: '',
+    worldSetting: '',
     protagonist: {
       name: '叶孤鸿',
       personality: '沉默寡言，外冷内热',
@@ -336,17 +360,22 @@ async function generateJinYongChapter(
     plotSummary: string
     keyEvents: string[]
     characterDevelopment: string
+    transitionFromPrev?: string
     momentIntegrations: string[]
   },
   fullOutline: string,
   protagonist: any,
   chapterIndex: number,
   totalChapters: number,
-  previousChapterEnding: string
+  previousChapterEnding: string,
+  worldSetting?: string
 ): Promise<string> {
   const momentsText = prepareMomentsForLLM(monthMoments)
 
   const systemPrompt = `你是金庸，正在写一部武侠小说。
+
+【世界设定（必须严格遵守）】
+${worldSetting || fullOutline || '一个少年在江湖中历练成长的故事。'}
 
 【主角设定】
 姓名：${protagonist.name}
@@ -354,11 +383,25 @@ async function generateJinYongChapter(
 背景：${protagonist.background}
 成长轨迹：${protagonist.growthArc}
 
-【故事总纲】
-${fullOutline || '一个少年在江湖中历练成长的故事。'}
-
 【上一回结尾】
 ${previousChapterEnding || '故事刚开始。'}
+
+【武侠世界观绝对禁令（违反将严重影响质量）】
+❌ 绝对禁止：高铁、飞机、汽车、手机、电脑、网络、微信、支付宝等任何现代科技
+❌ 绝对禁止：减肥、健身、打卡、上班、加班、工资、外卖、快递、KPI等任何现代生活概念
+❌ 绝对禁止：直接使用杭州、北京、上海、深圳等现代地名，必须用古称
+❌ 绝对禁止：任何穿越、混搭、时空错乱的内容
+✅ 所有现代生活素材必须完全转化为古代武侠场景，不留任何现代痕迹
+
+【章节连贯性强制要求】
+1. 本回开头必须承接上一回结尾的内容和氛围，不能突兀跳转
+2. 上一回出现的人物、地点、线索，在本回要有合理的延续或交代
+3. 人物的性格、武功、身份在全书中保持一致，不能突然变化
+4. 地理空间移动要合理，不能瞬间从一个地方跳到另一个地方
+5. 本回结尾要为下一回留下自然的引子或悬念
+
+【本回过渡设计】
+${chapterPlan.transitionFromPrev || '自然承接上一回结尾的情节和氛围'}
 
 【金庸风格写作要求】
 1. 典雅大气，有底蕴，可适当融入诗词典故
@@ -377,7 +420,7 @@ ${previousChapterEnding || '故事刚开始。'}
 人物成长：${chapterPlan.characterDevelopment}
 生活素材融入参考：${chapterPlan.momentIntegrations?.join('；') || ''}
 
-【重要】你是在写小说，不是在写日记！用小说的笔法，让读者看到画面，感受到人物的喜怒哀乐。`
+【重要】你是在写真正的武侠小说，不是披着武侠皮的现代日记！用小说的笔法，让读者看到画面，感受到人物的喜怒哀乐。`
 
   const userPrompt = `这是第${chapterIndex + 1}回，共${totalChapters}回。
 
@@ -404,17 +447,22 @@ async function generateGuLongChapter(
     plotSummary: string
     keyEvents: string[]
     characterDevelopment: string
+    transitionFromPrev?: string
     momentIntegrations: string[]
   },
   fullOutline: string,
   protagonist: any,
   chapterIndex: number,
   totalChapters: number,
-  previousChapterEnding: string
+  previousChapterEnding: string,
+  worldSetting?: string
 ): Promise<string> {
   const momentsText = prepareMomentsForLLM(monthMoments)
 
   const systemPrompt = `你是古龙，正在写一部武侠小说。
+
+【世界设定（必须严格遵守）】
+${worldSetting || fullOutline || '一个人，一把剑，走在路上。'}
 
 【主角设定】
 姓名：${protagonist.name}
@@ -422,11 +470,25 @@ async function generateGuLongChapter(
 背景：${protagonist.background}
 成长轨迹：${protagonist.growthArc}
 
-【故事总纲】
-${fullOutline || '一个人，一把剑，走在路上。'}
-
 【上一章结尾】
 ${previousChapterEnding || '故事刚开始。'}
+
+【武侠世界观绝对禁令（违反将严重影响质量）】
+❌ 绝对禁止：高铁、飞机、汽车、手机、电脑、网络、微信、支付宝等任何现代科技
+❌ 绝对禁止：减肥、健身、打卡、上班、加班、工资、外卖、快递、KPI等任何现代生活概念
+❌ 绝对禁止：直接使用杭州、北京、上海、深圳等现代地名，必须用古意名称
+❌ 绝对禁止：任何穿越、混搭、时空错乱的内容
+✅ 所有现代生活素材必须完全转化为古龙式江湖场景，不留任何现代痕迹
+
+【章节连贯性强制要求】
+1. 本章开头必须承接上一章结尾的内容和氛围，不能突兀跳转
+2. 上一章出现的人物、地点、线索，在本章要有合理的延续或交代
+3. 人物的性格、武功、身份在全书中保持一致，不能突然变化
+4. 地理空间移动要合理，不能瞬间从一个地方跳到另一个地方
+5. 本章结尾要为下一章留下自然的引子或悬念
+
+【本章过渡设计】
+${chapterPlan.transitionFromPrev || '自然承接上一章结尾的情节和氛围'}
 
 【古龙风格写作要求】
 1. 短句！短句！大量短句！独立成段！
@@ -652,7 +714,7 @@ export async function generateWuxiaBiographyDeep(
     outlineResult = await generateGuLongFullOutline(moments, startDate, endDate)
   }
 
-  const { title, overallOutline, protagonist, chapterPlans } = outlineResult
+  const { title, overallOutline, worldSetting, protagonist, chapterPlans } = outlineResult
   console.log(`[LLM] Outline generated, title: ${title}, protagonist: ${protagonist.name}`)
 
   const chapters: ChapterData[] = []
@@ -687,7 +749,8 @@ export async function generateWuxiaBiographyDeep(
         protagonist,
         i,
         chapterPlans.length,
-        previousChapterEnding
+        previousChapterEnding,
+        worldSetting
       )
     } else {
       chapterContent = await generateGuLongChapter(
@@ -697,7 +760,8 @@ export async function generateWuxiaBiographyDeep(
         protagonist,
         i,
         chapterPlans.length,
-        previousChapterEnding
+        previousChapterEnding,
+        worldSetting
       )
     }
 
