@@ -72,11 +72,6 @@ export const exportBiographyAsPDF = async (biography: Biography): Promise<void> 
     mediaList.forEach((m) => mediaMap.set(m.id, m))
   }
 
-  const printWindow = window.open('', '_blank')
-  if (!printWindow) {
-    throw new Error('无法打开打印窗口，请检查浏览器弹窗设置')
-  }
-
   const mediaBase64Map = new Map<string, string>()
   for (const [id, media] of mediaMap.entries()) {
     if (media.type === 'photo') {
@@ -85,8 +80,18 @@ export const exportBiographyAsPDF = async (biography: Biography): Promise<void> 
     }
   }
 
+  const renderContainer = document.createElement('div')
+  renderContainer.style.position = 'absolute'
+  renderContainer.style.left = '-9999px'
+  renderContainer.style.top = '-9999px'
+  renderContainer.style.width = '794px'
+  renderContainer.style.background = 'white'
+  renderContainer.style.fontFamily = "'SimSun', 'Microsoft YaHei', serif"
+  renderContainer.style.padding = '40px'
+  renderContainer.style.boxSizing = 'border-box'
+
   const chaptersHtml = biography.chapters
-    .map((chapter, idx) => {
+    .map((chapter) => {
       const mediaHtml = (chapter.mediaIds || [])
         .filter((id) => {
           const media = mediaMap.get(id)
@@ -94,79 +99,81 @@ export const exportBiographyAsPDF = async (biography: Biography): Promise<void> 
         })
         .map((id) => {
           const base64 = mediaBase64Map.get(id)
-          return `<div style="margin: 10px 5px; display: inline-block;"><img src="${base64}" style="max-width: 200px; max-height: 150px; border-radius: 8px;" /></div>`
+          const media = mediaMap.get(id)
+          return `
+            <div style="margin: 16px 0; text-align: center;">
+              <img src="${base64}" style="max-width: 100%; max-height: 350px; border-radius: 8px;" />
+              ${media?.description ? `<p style="font-size: 12px; color: #888; margin-top: 8px;">${media.description}</p>` : ''}
+            </div>
+          `
         })
         .join('')
 
+      const paragraphs = chapter.content.split('\n').filter(p => p.trim()).map(p =>
+        `<p style="font-size: 14px; line-height: 2; color: #333; text-indent: 2em; margin: 12px 0;">${p}</p>`
+      ).join('')
+
       return `
-        <div style="page-break-after: ${idx < biography.chapters.length - 1 ? 'always' : 'auto'}; padding: 20px;">
-          <h2 style="font-size: 20px; color: #333; margin-bottom: 20px; font-family: 'SimSun', serif;">
+        <div style="padding: 20px 0; border-bottom: 1px solid #f0f0f0;">
+          <h2 style="font-size: 20px; color: #222; margin-bottom: 20px; font-weight: bold;">
             ${chapter.title}
           </h2>
-          <div style="font-size: 14px; line-height: 2; color: #444; white-space: pre-wrap; font-family: 'SimSun', serif; text-indent: 2em;">
-            ${chapter.content}
-          </div>
-          ${mediaHtml ? `<div style="margin-top: 20px;">${mediaHtml}</div>` : ''}
+          ${paragraphs}
+          ${mediaHtml}
         </div>
       `
     })
     .join('')
 
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${biography.title}</title>
-      <style>
-        body {
-          font-family: 'SimSun', 'Microsoft YaHei', serif;
-          margin: 0;
-          padding: 40px;
-          background: white;
-        }
-        .cover {
-          text-align: center;
-          padding: 100px 40px;
-          page-break-after: always;
-        }
-        .cover h1 {
-          font-size: 36px;
-          color: #333;
-          margin-bottom: 30px;
-        }
-        .cover .meta {
-          font-size: 16px;
-          color: #666;
-          margin-bottom: 10px;
-        }
-        .cover .icon {
-          font-size: 64px;
-          margin-bottom: 30px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="cover">
-        <div class="icon">${STYLE_ICONS[biography.style] || '📖'}</div>
-        <h1>${biography.title}</h1>
-        <div class="meta">${STYLE_LABELS[biography.style] || ''}</div>
-        <div class="meta">${formatDateRange(biography.startDate, biography.endDate)}</div>
-      </div>
-      ${chaptersHtml}
-    </body>
-    </html>
+  renderContainer.innerHTML = `
+    <div style="text-align: center; padding: 80px 40px 120px; border-bottom: 1px solid #f0f0f0;">
+      <div style="font-size: 72px; margin-bottom: 30px;">${STYLE_ICONS[biography.style] || '📖'}</div>
+      <h1 style="font-size: 32px; color: #222; margin-bottom: 24px; font-weight: bold;">${biography.title}</h1>
+      <p style="font-size: 16px; color: #666; margin-bottom: 8px;">${STYLE_LABELS[biography.style] || ''}</p>
+      <p style="font-size: 16px; color: #666;">${formatDateRange(biography.startDate, biography.endDate)}</p>
+    </div>
+    ${chaptersHtml}
+    <div style="text-align: center; padding: 60px 40px;">
+      <p style="font-size: 14px; color: #999;">— 全文完 —</p>
+    </div>
   `
 
-  printWindow.document.write(htmlContent)
-  printWindow.document.close()
+  document.body.appendChild(renderContainer)
 
-  await new Promise((resolve) => {
-    printWindow.onload = resolve
-    setTimeout(resolve, 1000)
-  })
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500))
 
-  printWindow.print()
+    const canvas = await html2canvas(renderContainer, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+    })
+
+    document.body.removeChild(renderContainer)
+
+    const imgWidth = 210
+    const pageHeight = 297
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+    let position = 0
+
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    pdf.save(`${biography.title}.pdf`)
+  } catch (error) {
+    document.body.removeChild(renderContainer)
+    throw error
+  }
 }
 
 export const exportBiographyAsWord = async (biography: Biography): Promise<void> => {
