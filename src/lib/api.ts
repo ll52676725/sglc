@@ -65,7 +65,7 @@ export const api = {
   biography: {
     list: () => request<any[]>('/biography'),
     get: (id: string) => request<any>(`/biography/${id}`),
-    generate: (data: { startYear?: number; endYear?: number; style: string; language: string }) =>
+    generate: (data: { startDate: string; endDate: string; style: string; language: string }) =>
       request<any>('/biography/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

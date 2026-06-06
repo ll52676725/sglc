@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Trash2, Download, Edit3, Save, Loader2, Sparkles } from 'lucide-react'
+import {
+  BookOpen, Trash2, Download, Edit3, Save, Loader2, Sparkles,
+  Calendar, ChevronDown, X, Image, Clock, Feather,
+  Scroll, Star
+} from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import type { Biography, BiographyChapter } from '@/types'
-import { STYLE_LABELS } from '@/types'
+import { STYLE_LABELS, STYLE_DESCRIPTIONS, STYLE_ICONS } from '@/types'
 import { cn } from '@/lib/utils'
 
 export default function BiographyPage() {
@@ -13,13 +17,15 @@ export default function BiographyPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [currentBio, setCurrentBio] = useState<Biography | null>(null)
-  const [startYear, setStartYear] = useState<number | ''>('')
-  const [endYear, setEndYear] = useState<number | ''>('')
-  const [style, setStyle] = useState<string>('formal')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [style, setStyle] = useState<string>('modern')
+  const [showStyleDropdown, setShowStyleDropdown] = useState(false)
   const [language] = useState<string>('zh')
   const [generating, setGenerating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.biography.list().then(setBiographies).catch(() => {})
@@ -32,22 +38,40 @@ export default function BiographyPage() {
     }
     api.biography.get(selectedId).then((bio) => {
       setCurrentBio(bio)
-      setEditContent(bio.chapters.map((c: BiographyChapter) => c.content).join('\n\n'))
+      setEditContent(bio.chapters.map((c: BiographyChapter) => c.content).join('\n\n---\n\n'))
     }).catch(() => {})
   }, [selectedId])
 
+  useEffect(() => {
+    const now = new Date()
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+    setEndDate(now.toISOString().slice(0, 10))
+    setStartDate(threeMonthsAgo.toISOString().slice(0, 10))
+  }, [])
+
   const handleGenerate = async () => {
+    if (!startDate || !endDate) {
+      setError('请选择起止日期')
+      return
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      setError('开始日期不能晚于结束日期')
+      return
+    }
+
     setGenerating(true)
+    setError('')
     try {
       const bio = await api.biography.generate({
-        startYear: startYear === '' ? undefined : Number(startYear),
-        endYear: endYear === '' ? undefined : Number(endYear),
+        startDate: new Date(startDate).toISOString(),
+        endDate: new Date(endDate + 'T23:59:59').toISOString(),
         style,
         language,
       })
       addBiography(bio)
       setSelectedId(bio.id)
-    } catch {
+    } catch (err: any) {
+      setError(err.message || '生成失败，请重试')
     } finally {
       setGenerating(false)
     }
@@ -74,135 +98,240 @@ export default function BiographyPage() {
     try {
       const chapters = currentBio.chapters.map((c, i) => ({
         ...c,
-        content: editContent.split('\n\n')[i] ?? c.content,
+        content: editContent.split('\n\n---\n\n')[i] ?? c.content,
       }))
-      await api.biography.update(currentBio.id, { chapters })
+      await api.biography.update(currentBio.id, {
+        title: currentBio.title,
+        style: currentBio.style,
+        language: currentBio.language,
+        chapters,
+        startDate: currentBio.startDate,
+        endDate: currentBio.endDate,
+      })
       updateBiographyItem(currentBio.id, { chapters })
       setCurrentBio({ ...currentBio, chapters })
       setEditing(false)
     } catch {}
   }
 
+  const formatDateRange = (start: string, end: string) => {
+    const s = new Date(start)
+    const e = new Date(end)
+    if (s.getFullYear() === e.getFullYear()) {
+      return `${s.getFullYear()}年${s.getMonth() + 1}月${s.getDate()}日 - ${e.getMonth() + 1}月${e.getDate()}日`
+    }
+    return `${s.getFullYear()}年${s.getMonth() + 1}月 - ${e.getFullYear()}年${e.getMonth() + 1}月`
+  }
+
+  const getMomentCount = (chapters: BiographyChapter[]) => {
+    return chapters.reduce((sum, c) => sum + (c.momentIds?.length || 0), 0)
+  }
+
+  const getChapterDecorator = (style: string, index: number) => {
+    if (style === 'wuxia') {
+      return <Scroll className="w-5 h-5 text-gold-500" />
+    }
+    if (style === 'romance') {
+      return <Heart className="w-5 h-5 text-rose-400" />
+    }
+    if (style === 'fantasy') {
+      return <Star className="w-5 h-5 text-purple-500" />
+    }
+    if (style === 'poetic') {
+      return <Feather className="w-5 h-5 text-teal-500" />
+    }
+    return <BookOpen className="w-5 h-5 text-gold-500" />
+  }
+
   return (
     <div className="flex min-h-screen -m-8">
-      <aside className="w-72 flex-shrink-0 bg-parchment/40 border-r border-gold-200 overflow-y-auto p-6 sticky top-0 h-screen">
+      <aside className="w-80 flex-shrink-0 bg-parchment/40 border-r border-gold-200 overflow-y-auto p-6 sticky top-0 h-screen">
         <h1 className="font-display text-2xl text-ink golden-underline inline-block mb-6">传记工坊</h1>
 
         <div className="space-y-4 mb-8">
-          <div className="flex gap-3">
-            <input
-              type="number"
-              placeholder="起始年份"
-              value={startYear}
-              onChange={(e) => setStartYear(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-full rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-ink placeholder:text-ink/40 focus:outline-none focus:border-gold-400"
-            />
-            <input
-              type="number"
-              placeholder="结束年份"
-              value={endYear}
-              onChange={(e) => setEndYear(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-full rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-ink placeholder:text-ink/40 focus:outline-none focus:border-gold-400"
-            />
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-sm text-ink/60">
+              <Calendar size={14} />
+              时间范围
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:border-gold-400"
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="flex-1 rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:border-gold-400"
+              />
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            {Object.entries(STYLE_LABELS).map(([key, label]) => (
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-sm text-ink/60">
+              <Sparkles size={14} />
+              传记风格
+            </label>
+            <div className="relative">
               <button
-                key={key}
-                onClick={() => setStyle(key)}
-                className={cn(
-                  'flex-1 rounded-lg py-2 text-sm font-medium transition-colors',
-                  style === key
-                    ? 'bg-gold-500 text-white'
-                    : 'bg-ivory/60 text-ink/70 hover:bg-ivory'
-                )}
+                onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+                className="w-full flex items-center justify-between rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink hover:bg-ivory transition"
               >
-                {label}
+                <span className="flex items-center gap-2">
+                  <span>{STYLE_ICONS[style]}</span>
+                  <span>{STYLE_LABELS[style]}</span>
+                </span>
+                <ChevronDown size={16} className={cn('transition-transform', showStyleDropdown && 'rotate-180')} />
               </button>
-            ))}
+              {showStyleDropdown && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowStyleDropdown(false)} />
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gold-200/60 z-20 max-h-80 overflow-y-auto">
+                    {Object.entries(STYLE_LABELS).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => { setStyle(key); setShowStyleDropdown(false) }}
+                        className={cn(
+                          'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gold-100 last:border-b-0',
+                          style === key ? 'bg-gold-50 text-gold-700' : 'hover:bg-gold-50/50 text-ink/70'
+                        )}
+                      >
+                        <span className="text-2xl">{STYLE_ICONS[key]}</span>
+                        <div className="flex-1">
+                          <p className="font-medium">{label}</p>
+                          <p className="text-xs text-ink/40 mt-0.5">{STYLE_DESCRIPTIONS[key]}</p>
+                        </div>
+                        {style === key && (
+                          <div className="w-2 h-2 rounded-full bg-gold-500 mt-2" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+
+          {error && (
+            <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          )}
 
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-gold-500 py-3 text-white font-medium transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 py-3 text-white font-medium transition-all hover:shadow-lg hover:shadow-gold-500/30 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {generating ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <BookOpen className="w-5 h-5" />
+              <Feather className="w-5 h-5" />
             )}
-            {generating ? '生成中...' : '生成传记'}
+            {generating ? '正在创作...' : '开始创作'}
           </button>
         </div>
 
         <div className="border-t border-gold-200 pt-4">
-          <h2 className="font-display text-lg text-ink/70 mb-3">历史传记</h2>
+          <h2 className="font-display text-lg text-ink/70 mb-3">我的传记</h2>
           <div className="space-y-2">
-            {biographies.map((bio) => (
-              <div
-                key={bio.id}
-                onClick={() => handleSelect(bio.id)}
-                className={cn(
-                  'group flex items-start justify-between rounded-lg p-3 cursor-pointer transition-colors',
-                  selectedId === bio.id
-                    ? 'bg-gold-500/15 border border-gold-400'
-                    : 'hover:bg-ivory/60 border border-transparent'
-                )}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-ink truncate">{bio.title}</p>
-                  <p className="text-xs text-ink/50 mt-1">
-                    {bio.startYear}–{bio.endYear}
-                  </p>
-                  <span className="inline-block mt-1 rounded-full bg-gold-500/10 px-2 py-0.5 text-xs text-gold-700">
-                    {STYLE_LABELS[bio.style]}
-                  </span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete(bio.id)
-                  }}
-                  className="ml-2 mt-1 p-1 rounded text-ink/30 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+            {biographies.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="w-10 h-10 text-gold-300 mx-auto mb-2" />
+                <p className="text-sm text-ink/40">还没有传记</p>
+                <p className="text-xs text-ink/30 mt-1">选择时间范围开始创作吧</p>
               </div>
-            ))}
+            ) : (
+              biographies.map((bio) => (
+                <div
+                  key={bio.id}
+                  onClick={() => handleSelect(bio.id)}
+                  className={cn(
+                    'group relative flex items-start justify-between rounded-xl p-4 cursor-pointer transition-all border',
+                    selectedId === bio.id
+                      ? 'bg-gradient-to-r from-gold-50 to-ivory border-gold-400 shadow-md'
+                      : 'hover:bg-ivory/60 border-transparent hover:border-gold-200'
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">{STYLE_ICONS[bio.style]}</span>
+                      <p className="font-medium text-ink truncate">{bio.title}</p>
+                    </div>
+                    <p className="text-xs text-ink/50 mb-2">
+                      {formatDateRange(bio.startDate, bio.endDate)}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block rounded-full bg-gold-500/10 px-2.5 py-0.5 text-xs text-gold-700">
+                        {STYLE_LABELS[bio.style]}
+                      </span>
+                      <span className="text-xs text-ink/40">
+                        {getMomentCount(bio.chapters)} 条记录
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(bio.id)
+                    }}
+                    className="ml-2 p-1.5 rounded-lg text-ink/30 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </aside>
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-y-auto">
         {!currentBio ? (
-          <div className="flex flex-col items-center justify-center min-h-[70vh] text-ink/40">
-            <BookOpen className="w-16 h-16 mb-4" />
-            <p className="font-display text-xl">选择或生成一篇传记</p>
+          <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 flex items-center justify-center mb-6">
+              <BookOpen className="w-12 h-12 text-gold-500" />
+            </div>
+            <p className="font-display text-2xl text-ink mb-2">选择或创作一篇传记</p>
+            <p className="text-ink/50 max-w-md">
+              在左侧选择时间范围和风格，让我们一起把这段时光变成一个动人的故事
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-8">
+              {Object.entries(STYLE_ICONS).slice(0, 6).map(([key, icon]) => (
+                <div
+                  key={key}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-ivory/50"
+                >
+                  <span className="text-2xl">{icon}</span>
+                  <span className="text-xs text-ink/50">{STYLE_LABELS[key]}</span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="fade-in">
-            <div className="flex items-start justify-between mb-8">
-              <div>
-                <h1 className="font-display text-3xl text-ink golden-underline inline-block">
-                  {currentBio.title}
-                </h1>
-                <p className="text-ink/60 mt-3">
-                  {STYLE_LABELS[currentBio.style]} · {currentBio.startYear}–{currentBio.endYear}
-                </p>
+          <div className="fade-in max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 mb-4">
+                <span className="text-3xl">{STYLE_ICONS[currentBio.style]}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <h1 className="font-display text-4xl text-ink mb-3">
+                {currentBio.title}
+              </h1>
+              <p className="text-ink/60">
+                {STYLE_LABELS[currentBio.style]} · {formatDateRange(currentBio.startDate, currentBio.endDate)}
+              </p>
+              <div className="flex items-center justify-center gap-3 mt-6">
                 <button
                   onClick={() => {
                     if (editing) {
                       setEditing(false)
                     } else {
-                      setEditContent(currentBio.chapters.map((c) => c.content).join('\n\n'))
+                      setEditContent(currentBio.chapters.map((c) => c.content).join('\n\n---\n\n'))
                       setEditing(true)
                     }
                   }}
-                  className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-3 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-4 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors"
                 >
                   {editing ? <Sparkles className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
                   {editing ? '预览' : '编辑'}
@@ -210,53 +339,101 @@ export default function BiographyPage() {
                 {editing && (
                   <button
                     onClick={handleSave}
-                    className="flex items-center gap-1.5 rounded-lg bg-gold-500 px-3 py-2 text-sm text-white hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-1.5 rounded-lg bg-gold-500 px-4 py-2 text-sm text-white hover:bg-gold-600 transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     保存
                   </button>
                 )}
-                <button className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-3 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors">
+                <button className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-4 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors">
                   <Download className="w-4 h-4" />
-                  导出 PDF
-                </button>
-                <button className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-3 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors">
-                  <Download className="w-4 h-4" />
-                  导出 TXT
+                  导出
                 </button>
               </div>
             </div>
 
             {editing ? (
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full min-h-[60vh] rounded-lg border border-gold-200 bg-parchment/30 p-6 text-lg leading-8 text-ink/80 font-body focus:outline-none focus:border-gold-400 resize-y"
-              />
+              <div className="bg-white rounded-2xl shadow-lg border border-gold-100 p-6">
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full min-h-[60vh] bg-transparent text-lg leading-9 text-ink/80 font-body focus:outline-none resize-none"
+                  placeholder="在这里编辑传记内容..."
+                />
+              </div>
             ) : (
-              <div className="space-y-0">
+              <div className="bg-gradient-to-b from-ivory/50 to-white rounded-2xl shadow-lg border border-gold-100 overflow-hidden">
                 {currentBio.chapters.map((chapter, idx) => (
-                  <section key={idx}>
-                    <h2 className="font-display text-xl text-gold-700 mt-8 mb-4 border-l-4 border-gold-400 pl-4">
-                      {chapter.title}
-                    </h2>
-                    <div className="text-ink/80 leading-8 text-lg font-body whitespace-pre-line">
+                  <div
+                    key={idx}
+                    className={cn(
+                      'p-8',
+                      idx < currentBio.chapters.length - 1 && 'border-b border-gold-100'
+                    )}
+                  >
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 flex items-center justify-center">
+                        {getChapterDecorator(currentBio.style, idx)}
+                      </div>
+                      <h2 className="font-display text-2xl text-ink">
+                        {chapter.title}
+                      </h2>
+                    </div>
+                    <div className="text-ink/80 leading-9 text-lg font-body whitespace-pre-line pl-13">
                       {chapter.content}
                     </div>
-                    {chapter.mediaIds.length > 0 && (
-                      <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
-                        {chapter.mediaIds.map((mediaId) => (
-                          <div
-                            key={mediaId}
-                            className="h-24 w-36 flex-shrink-0 rounded-lg bg-gold-100 border border-gold-200 flex items-center justify-center text-gold-400 text-xs"
-                          >
-                            {mediaId.slice(0, 6)}
-                          </div>
-                        ))}
+
+                    {chapter.mediaIds && chapter.mediaIds.length > 0 && (
+                      <div className="mt-6 ml-13">
+                        <p className="text-xs text-ink/40 mb-3 flex items-center gap-1.5">
+                          <Image size={12} /> 相关媒体 ({chapter.mediaIds.length})
+                        </p>
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                          {chapter.mediaIds.slice(0, 5).map((mediaId) => (
+                            <div
+                              key={mediaId}
+                              className="h-24 w-32 flex-shrink-0 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center text-gold-400 cursor-pointer hover:border-gold-400 hover:bg-gold-100 transition-all group"
+                              onClick={() => navigate(`/media/${mediaId}`)}
+                            >
+                              <Image size={24} className="group-hover:scale-110 transition-transform" />
+                            </div>
+                          ))}
+                          {chapter.mediaIds.length > 5 && (
+                            <div className="h-24 w-24 flex-shrink-0 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center text-gold-600 font-medium">
+                              +{chapter.mediaIds.length - 5}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-                  </section>
+
+                    {chapter.momentIds && chapter.momentIds.length > 0 && (
+                      <div className="mt-4 ml-13">
+                        <p className="text-xs text-ink/40 mb-2 flex items-center gap-1.5">
+                          <Clock size={12} /> 时光记录 ({chapter.momentIds.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {chapter.momentIds.slice(0, 4).map((momentId) => (
+                            <span
+                              key={momentId}
+                              className="inline-block rounded-full bg-ivory border border-gold-200 px-3 py-1 text-xs text-ink/60 cursor-pointer hover:border-gold-400 hover:bg-gold-50 transition-colors"
+                              onClick={() => navigate(`/timeline?id=${momentId}`)}
+                            >
+                              查看动态
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
+
+                <div className="p-8 bg-gradient-to-t from-gold-50/50 to-transparent text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gold-100 mb-4">
+                    <Star className="w-6 h-6 text-gold-500" />
+                  </div>
+                  <p className="text-ink/40 text-sm">— 全文完 —</p>
+                </div>
               </div>
             )}
           </div>
@@ -266,3 +443,21 @@ export default function BiographyPage() {
   )
 }
 
+function Heart({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
+  )
+}

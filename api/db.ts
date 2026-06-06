@@ -54,10 +54,10 @@ CREATE TABLE IF NOT EXISTS media_tags (
 CREATE TABLE IF NOT EXISTS biographies (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  style TEXT NOT NULL CHECK(style IN ('formal', 'casual', 'poetic')),
+  style TEXT NOT NULL,
   language TEXT NOT NULL CHECK(language IN ('zh', 'en')),
-  start_year INTEGER,
-  end_year INTEGER,
+  start_date TEXT,
+  end_date TEXT,
   content TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))

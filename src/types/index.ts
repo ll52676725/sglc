@@ -77,14 +77,16 @@ export interface Album {
   updatedAt: string
 }
 
+export type BiographyStyle = 'formal' | 'casual' | 'poetic' | 'modern' | 'wuxia' | 'romance' | 'fantasy' | 'memoir'
+
 export interface Biography {
   id: string
   title: string
-  style: 'formal' | 'casual' | 'poetic'
+  style: BiographyStyle
   language: 'zh' | 'en'
   chapters: BiographyChapter[]
-  startYear: number
-  endYear: number
+  startDate: string
+  endDate: string
   createdAt: string
   updatedAt: string
 }
@@ -93,7 +95,8 @@ export interface BiographyChapter {
   title: string
   content: string
   mediaIds: string[]
-  year: number
+  momentIds: string[]
+  date: string
 }
 
 export interface Stats {
@@ -118,6 +121,33 @@ export const STYLE_LABELS: Record<string, string> = {
   formal: '正式',
   casual: '轻松',
   poetic: '诗意',
+  modern: '现代文',
+  wuxia: '武侠',
+  romance: '都市爱情',
+  fantasy: '奇幻',
+  memoir: '回忆录',
+}
+
+export const STYLE_DESCRIPTIONS: Record<string, string> = {
+  formal: '正式庄重的叙事风格',
+  casual: '轻松愉快的日记风格',
+  poetic: '优美诗意的文学风格',
+  modern: '现代都市小说风格',
+  wuxia: '江湖武侠传奇风格',
+  romance: '浪漫爱情故事风格',
+  fantasy: '奇幻冒险魔法风格',
+  memoir: '深情回忆录风格',
+}
+
+export const STYLE_ICONS: Record<string, string> = {
+  formal: '📜',
+  casual: '📔',
+  poetic: '🌸',
+  modern: '🏙️',
+  wuxia: '⚔️',
+  romance: '💕',
+  fantasy: '✨',
+  memoir: '📖',
 }
 
 export interface AIGroupItem {

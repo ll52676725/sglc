@@ -181,7 +181,7 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
         files: selectedFiles.length > 0 ? selectedFiles : undefined,
         videoThumbnails: videoThumbnails.size > 0 ? videoThumbnails : undefined,
       })
-      onSuccess(result)
+      onSuccess(result as Moment)
     } catch (err: any) {
       setError(err.message || '发布失败，请重试')
     } finally {
