@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express'
 import { v4 } from 'uuid'
 import { getDb, all, get, run } from '../db.js'
+import { generateWuxiaBiography, type WuxiaStyle } from '../lib/wuxia-biography.js'
 
 const router = Router()
 
@@ -625,11 +626,16 @@ function generateBiographyFromMoments(
   moments: any[],
   style: string,
 ): { title: string; chapters: Array<{ title: string; content: string; momentIds: string[]; mediaIds: string[]; date: string }> } {
-  const template = STORY_TEMPLATES[style] || STORY_TEMPLATES.casual
-  
   const sortedMoments = [...moments].sort((a, b) => 
     new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime()
   )
+  
+  if (style === 'wuxia') {
+    const wuxiaStyle: WuxiaStyle = 'mixed'
+    return generateWuxiaBiography(sortedMoments, wuxiaStyle)
+  }
+  
+  const template = STORY_TEMPLATES[style] || STORY_TEMPLATES.casual
   
   const startDate = sortedMoments[0]?.happened_at || new Date().toISOString()
   const endDate = sortedMoments[sortedMoments.length - 1]?.happened_at || new Date().toISOString()
