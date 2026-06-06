@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS biographies (
   start_date TEXT,
   end_date TEXT,
   content TEXT NOT NULL,
+  writer_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -110,6 +111,18 @@ export function saveDb() {
   fs.writeFileSync(DB_PATH, buffer)
 }
 
+async function runMigrations(database: Database) {
+  try {
+    const columns = all(database, `PRAGMA table_info(biographies)`)
+    const hasWriterId = columns.some((col: any) => col.name === 'writer_id')
+    if (!hasWriterId) {
+      run(database, `ALTER TABLE biographies ADD COLUMN writer_id TEXT`)
+    }
+  } catch (e) {
+    console.error('Migration failed:', e)
+  }
+}
+
 export async function getDb(): Promise<Database> {
   if (db) return db
 
@@ -120,6 +133,7 @@ export async function getDb(): Promise<Database> {
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH)
     db = new SQL.Database(fileBuffer)
+    await runMigrations(db)
   } else {
     db = new SQL.Database()
     db.run(SCHEMA)

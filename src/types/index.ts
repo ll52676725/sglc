@@ -79,11 +79,19 @@ export interface Album {
 
 export type BiographyStyle = 'formal' | 'casual' | 'poetic' | 'modern' | 'wuxia' | 'romance' | 'fantasy' | 'memoir'
 
+export interface WriterStyle {
+  id: string
+  name: string
+  description: string
+  category: string
+}
+
 export interface Biography {
   id: string
   title: string
   style: BiographyStyle
   language: 'zh' | 'en'
+  writerId?: string | null
   chapters: BiographyChapter[]
   startDate: string
   endDate: string

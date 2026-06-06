@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express'
 import { v4 } from 'uuid'
 import { getDb, all, get, run } from '../db.js'
 import { generateWuxiaBiographyDeep, type WuxiaStyle } from '../lib/wuxia-biography-deep.js'
+import { generateBiographyWithWriter, continueBiography, WRITER_STYLES } from '../lib/llm-biography-generator.js'
 
 const router = Router()
 
@@ -625,14 +626,19 @@ function groupMomentsByMonth(moments: any[]): Map<string, any[]> {
 async function generateBiographyFromMoments(
   moments: any[],
   style: string,
+  writerId?: string,
+  useLLM: boolean = true
 ): Promise<{ title: string; chapters: Array<{ title: string; content: string; momentIds: string[]; mediaIds: string[]; date: string }> }> {
   const sortedMoments = [...moments].sort((a, b) => 
     new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime()
   )
   
-  if (style === 'wuxia') {
-    const wuxiaStyle: WuxiaStyle = Math.random() > 0.5 ? 'jinyong' : 'gulong'
-    return await generateWuxiaBiographyDeep(sortedMoments, wuxiaStyle)
+  if (useLLM) {
+    if (style === 'wuxia') {
+      const wuxiaStyle: WuxiaStyle = (writerId as WuxiaStyle) || (Math.random() > 0.5 ? 'jinyong' : 'gulong')
+      return await generateWuxiaBiographyDeep(sortedMoments, wuxiaStyle)
+    }
+    return await generateBiographyWithWriter(sortedMoments, style, writerId)
   }
   
   const template = STORY_TEMPLATES[style] || STORY_TEMPLATES.casual
@@ -699,6 +705,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       start_date: string
       end_date: string
       content: string
+      writer_id: string | null
       created_at: string
       updated_at: string
     }>(db, `SELECT * FROM biographies ORDER BY created_at DESC`, [])
@@ -715,6 +722,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
         title: b.title,
         style: b.style,
         language: b.language,
+        writerId: b.writer_id,
         startDate: b.start_date,
         endDate: b.end_date,
         chapters,
@@ -729,10 +737,18 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
   }
 })
 
+router.get('/writers', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ success: true, data: WRITER_STYLES })
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message })
+  }
+})
+
 router.post('/generate', async (req: Request, res: Response): Promise<void> => {
   try {
     const db = await getDb()
-    const { startDate, endDate, style = 'casual', language = 'zh' } = req.body
+    const { startDate, endDate, style = 'casual', language = 'zh', writerId, useLLM = true } = req.body
 
     if (!startDate || !endDate) {
       res.status(400).json({ success: false, error: 'startDate and endDate are required' })
@@ -774,13 +790,13 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
       return
     }
 
-    const { title, chapters } = await generateBiographyFromMoments(momentsWithMedia, style)
+    const { title, chapters } = await generateBiographyFromMoments(momentsWithMedia, style, writerId, useLLM)
 
     const id = v4()
     const contentJson = JSON.stringify(chapters)
     
-    run(db, `INSERT INTO biographies (id, title, style, language, start_date, end_date, content) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
-      id, title, style, language, startDate, endDate, contentJson,
+    run(db, `INSERT INTO biographies (id, title, style, language, start_date, end_date, content, writer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+      id, title, style, language, startDate, endDate, contentJson, writerId || null,
     ])
 
     res.status(201).json({
@@ -790,8 +806,110 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
         title,
         style,
         language,
+        writerId,
         startDate,
         endDate,
+        chapters,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message })
+  }
+})
+
+router.post('/:id/continue', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const db = await getDb()
+    const { id } = req.params
+    const { startDate, endDate, writerId } = req.body
+
+    if (!startDate || !endDate) {
+      res.status(400).json({ success: false, error: 'startDate and endDate are required' })
+      return
+    }
+
+    const biography = get<{
+      id: string
+      title: string
+      style: string
+      language: string
+      start_date: string
+      end_date: string
+      content: string
+      writer_id: string | null
+    }>(db, `SELECT * FROM biographies WHERE id = ?`, [id])
+
+    if (!biography) {
+      res.status(404).json({ success: false, error: 'Biography not found' })
+      return
+    }
+
+    let existingChapters = []
+    try {
+      existingChapters = JSON.parse(biography.content)
+    } catch {
+      existingChapters = [{ title: '内容', content: biography.content, momentIds: [], mediaIds: [], date: biography.start_date }]
+    }
+
+    const momentRows = all<{
+      id: string
+      content: string
+      mood: string
+      weather: string
+      location: string
+      happened_at: string
+      created_at: string
+    }>(
+      db,
+      `SELECT m.id, m.content, m.mood, m.weather, m.location, m.happened_at, m.created_at
+       FROM moments m
+       WHERE m.happened_at >= ? AND m.happened_at <= ?
+       ORDER BY m.happened_at ASC`,
+      [startDate, endDate],
+    )
+
+    const momentsWithMedia = momentRows.map(m => {
+      const media = all<{ media_id: string }>(
+        db,
+        `SELECT media_id FROM moment_media WHERE moment_id = ?`,
+        [m.id],
+      )
+      return {
+        ...m,
+        media_count: media.length,
+        media_ids: media.map(mm => mm.media_id),
+      }
+    })
+
+    if (momentsWithMedia.length === 0) {
+      res.status(400).json({ success: false, error: '续写时间范围内暂无时光动态，请先记录一些内容吧' })
+      return
+    }
+
+    const { chapters } = await continueBiography(
+      existingChapters,
+      momentsWithMedia,
+      biography.style,
+      writerId || biography.writer_id || undefined
+    )
+
+    const contentJson = JSON.stringify(chapters)
+    const newEndDate = new Date(endDate) > new Date(biography.end_date) ? endDate : biography.end_date
+
+    run(db, `UPDATE biographies SET content = ?, end_date = ?, updated_at = datetime('now'), writer_id = ? WHERE id = ?`, [
+      contentJson, newEndDate, writerId || biography.writer_id || null, id,
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        id,
+        title: biography.title,
+        style: biography.style,
+        language: biography.language,
+        writerId: writerId || biography.writer_id,
+        startDate: biography.start_date,
+        endDate: newEndDate,
         chapters,
       },
     })
@@ -813,6 +931,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       start_date: string
       end_date: string
       content: string
+      writer_id: string | null
       created_at: string
       updated_at: string
     }>(db, `SELECT * FROM biographies WHERE id = ?`, [id])
@@ -836,6 +955,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
         title: biography.title,
         style: biography.style,
         language: biography.language,
+        writerId: biography.writer_id,
         startDate: biography.start_date,
         endDate: biography.end_date,
         chapters,

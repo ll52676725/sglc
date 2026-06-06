@@ -65,8 +65,15 @@ export const api = {
   biography: {
     list: () => request<any[]>('/biography'),
     get: (id: string) => request<any>(`/biography/${id}`),
-    generate: (data: { startDate: string; endDate: string; style: string; language: string }) =>
+    getWriters: () => request<Record<string, any[]>>('/biography/writers'),
+    generate: (data: { startDate: string; endDate: string; style: string; language: string; writerId?: string; useLLM?: boolean }) =>
       request<any>('/biography/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    continue: (id: string, data: { startDate: string; endDate: string; writerId?: string }) =>
+      request<any>(`/biography/${id}/continue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

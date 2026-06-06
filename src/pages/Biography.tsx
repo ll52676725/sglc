@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Trash2, Download, Edit3, Save, Loader2, Sparkles,
   Calendar, ChevronDown, X, Image, Clock, Feather,
-  Scroll, Star
+  Scroll, Star, RefreshCw, PenTool
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
-import type { Biography, BiographyChapter } from '@/types'
+import type { Biography, BiographyChapter, WriterStyle } from '@/types'
 import { STYLE_LABELS, STYLE_DESCRIPTIONS, STYLE_ICONS } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -20,15 +20,23 @@ export default function BiographyPage() {
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [style, setStyle] = useState<string>('modern')
+  const [writerId, setWriterId] = useState<string>('')
+  const [writers, setWriters] = useState<Record<string, WriterStyle[]>>({})
   const [showStyleDropdown, setShowStyleDropdown] = useState(false)
+  const [showWriterDropdown, setShowWriterDropdown] = useState(false)
   const [language] = useState<string>('zh')
   const [generating, setGenerating] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
   const [error, setError] = useState('')
+  const [showContinueModal, setShowContinueModal] = useState(false)
+  const [continueStartDate, setContinueStartDate] = useState<string>('')
+  const [continueEndDate, setContinueEndDate] = useState<string>('')
+  const [continuing, setContinuing] = useState(false)
 
   useEffect(() => {
     api.biography.list().then(setBiographies).catch(() => {})
+    api.biography.getWriters().then(setWriters).catch(() => {})
   }, [setBiographies])
 
   useEffect(() => {
@@ -49,6 +57,20 @@ export default function BiographyPage() {
     setStartDate(threeMonthsAgo.toISOString().slice(0, 10))
   }, [])
 
+  useEffect(() => {
+    setWriterId('')
+  }, [style])
+
+  const getCurrentWriters = (): WriterStyle[] => {
+    return writers[style] || []
+  }
+
+  const getWriterName = (id: string): string => {
+    const allWriters = Object.values(writers).flat()
+    const writer = allWriters.find(w => w.id === id)
+    return writer?.name || ''
+  }
+
   const handleGenerate = async () => {
     if (!startDate || !endDate) {
       setError('请选择起止日期')
@@ -67,6 +89,8 @@ export default function BiographyPage() {
         endDate: new Date(endDate + 'T23:59:59').toISOString(),
         style,
         language,
+        writerId: writerId || undefined,
+        useLLM: true,
       })
       addBiography(bio)
       setSelectedId(bio.id)
@@ -75,6 +99,44 @@ export default function BiographyPage() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleContinue = async () => {
+    if (!currentBio || !continueStartDate || !continueEndDate) {
+      setError('请选择续写的起止日期')
+      return
+    }
+    if (new Date(continueStartDate) > new Date(continueEndDate)) {
+      setError('开始日期不能晚于结束日期')
+      return
+    }
+
+    setContinuing(true)
+    setError('')
+    try {
+      const bio = await api.biography.continue(currentBio.id, {
+        startDate: new Date(continueStartDate).toISOString(),
+        endDate: new Date(continueEndDate + 'T23:59:59').toISOString(),
+        writerId: writerId || currentBio.writerId || undefined,
+      })
+      updateBiographyItem(currentBio.id, bio)
+      setCurrentBio(bio)
+      setShowContinueModal(false)
+    } catch (err: any) {
+      setError(err.message || '续写失败，请重试')
+    } finally {
+      setContinuing(false)
+    }
+  }
+
+  const openContinueModal = () => {
+    if (!currentBio) return
+    const endDate = new Date(currentBio.endDate)
+    const nextMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1)
+    const now = new Date()
+    setContinueStartDate(nextMonth.toISOString().slice(0, 10))
+    setContinueEndDate(now.toISOString().slice(0, 10))
+    setShowContinueModal(true)
   }
 
   const handleSelect = (id: string) => {
@@ -215,6 +277,69 @@ export default function BiographyPage() {
             </div>
           </div>
 
+          {getCurrentWriters().length > 0 && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-sm text-ink/60">
+                <PenTool size={14} />
+                参考作家
+              </label>
+              <div className="relative">
+                <button
+                  onClick={() => setShowWriterDropdown(!showWriterDropdown)}
+                  className="w-full flex items-center justify-between rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink hover:bg-ivory transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <PenTool size={14} className="text-gold-500" />
+                    <span>{writerId ? getWriterName(writerId) : '随机选择'}</span>
+                  </span>
+                  <ChevronDown size={16} className={cn('transition-transform', showWriterDropdown && 'rotate-180')} />
+                </button>
+                {showWriterDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowWriterDropdown(false)} />
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gold-200/60 z-20 max-h-60 overflow-y-auto">
+                      <button
+                        onClick={() => { setWriterId(''); setShowWriterDropdown(false) }}
+                        className={cn(
+                          'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gold-100',
+                          !writerId ? 'bg-gold-50 text-gold-700' : 'hover:bg-gold-50/50 text-ink/70'
+                        )}
+                      >
+                        <span className="text-xl">🎲</span>
+                        <div className="flex-1">
+                          <p className="font-medium">随机选择</p>
+                          <p className="text-xs text-ink/40 mt-0.5">系统自动选择一位作家</p>
+                        </div>
+                        {!writerId && (
+                          <div className="w-2 h-2 rounded-full bg-gold-500 mt-2" />
+                        )}
+                      </button>
+                      {getCurrentWriters().map((writer) => (
+                        <button
+                          key={writer.id}
+                          onClick={() => { setWriterId(writer.id); setShowWriterDropdown(false) }}
+                          className={cn(
+                            'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gold-100 last:border-b-0',
+                            writerId === writer.id ? 'bg-gold-50 text-gold-700' : 'hover:bg-gold-50/50 text-ink/70'
+                          )}
+                        >
+                          <span className="text-xl">✍️</span>
+                          <div className="flex-1">
+                            <p className="font-medium">{writer.name}</p>
+                            <p className="text-xs text-ink/40 mt-0.5">{writer.description}</p>
+                          </div>
+                          {writerId === writer.id && (
+                            <div className="w-2 h-2 rounded-full bg-gold-500 mt-2" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {error && (
             <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
           )}
@@ -319,9 +444,21 @@ export default function BiographyPage() {
                 {currentBio.title}
               </h1>
               <p className="text-ink/60">
-                {STYLE_LABELS[currentBio.style]} · {formatDateRange(currentBio.startDate, currentBio.endDate)}
+                {STYLE_LABELS[currentBio.style]}
+                {currentBio.writerId && (
+                  <span className="ml-2">· 参考作家：{getWriterName(currentBio.writerId)}</span>
+                )}
+                <span className="mx-2">·</span>
+                {formatDateRange(currentBio.startDate, currentBio.endDate)}
               </p>
-              <div className="flex items-center justify-center gap-3 mt-6">
+              <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
+                <button
+                  onClick={openContinueModal}
+                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm text-white hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  续写传记
+                </button>
                 <button
                   onClick={() => {
                     if (editing) {
@@ -439,6 +576,152 @@ export default function BiographyPage() {
           </div>
         )}
       </main>
+
+      {showContinueModal && currentBio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-xl text-white">续写传记</h3>
+                <button
+                  onClick={() => setShowContinueModal(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-white/80 text-sm mt-1">
+                选择续写的时间范围，基于新的时光动态继续创作
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                <p className="text-sm text-emerald-700">
+                  <span className="font-medium">当前传记：</span>{currentBio.title}
+                </p>
+                <p className="text-xs text-emerald-600 mt-1">
+                  原有时间范围：{formatDateRange(currentBio.startDate, currentBio.endDate)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-sm text-ink/60">
+                  <Calendar size={14} />
+                  续写时间范围
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={continueStartDate}
+                    onChange={(e) => setContinueStartDate(e.target.value)}
+                    className="flex-1 rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:border-emerald-400"
+                  />
+                  <input
+                    type="date"
+                    value={continueEndDate}
+                    onChange={(e) => setContinueEndDate(e.target.value)}
+                    className="flex-1 rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              {getCurrentWriters().length > 0 && (
+                <div className="space-y-2">
+                  <label className="flex items-center gap-1.5 text-sm text-ink/60">
+                    <PenTool size={14} />
+                    续写作家
+                  </label>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowWriterDropdown(!showWriterDropdown)}
+                      className="w-full flex items-center justify-between rounded-lg border border-gold-200 bg-ivory/60 px-3 py-2 text-sm text-ink hover:bg-ivory transition"
+                    >
+                      <span className="flex items-center gap-2">
+                        <PenTool size={14} className="text-gold-500" />
+                        <span>
+                          {writerId
+                            ? getWriterName(writerId)
+                            : currentBio.writerId
+                            ? `沿用：${getWriterName(currentBio.writerId)}`
+                            : '随机选择'}
+                        </span>
+                      </span>
+                      <ChevronDown size={16} className={cn('transition-transform', showWriterDropdown && 'rotate-180')} />
+                    </button>
+                    {showWriterDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowWriterDropdown(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gold-200/60 z-20 max-h-60 overflow-y-auto">
+                          <button
+                            onClick={() => { setWriterId(''); setShowWriterDropdown(false) }}
+                            className={cn(
+                              'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gold-100',
+                              !writerId ? 'bg-gold-50 text-gold-700' : 'hover:bg-gold-50/50 text-ink/70'
+                            )}
+                          >
+                            <span className="text-xl">🎲</span>
+                            <div className="flex-1">
+                              <p className="font-medium">沿用原作家</p>
+                              <p className="text-xs text-ink/40 mt-0.5">
+                                {currentBio.writerId ? `继续使用${getWriterName(currentBio.writerId)}风格` : '随机选择一位作家'}
+                              </p>
+                            </div>
+                          </button>
+                          {getCurrentWriters().map((writer) => (
+                            <button
+                              key={writer.id}
+                              onClick={() => { setWriterId(writer.id); setShowWriterDropdown(false) }}
+                              className={cn(
+                                'w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gold-100 last:border-b-0',
+                                writerId === writer.id ? 'bg-gold-50 text-gold-700' : 'hover:bg-gold-50/50 text-ink/70'
+                              )}
+                            >
+                              <span className="text-xl">✍️</span>
+                              <div className="flex-1">
+                                <p className="font-medium">{writer.name}</p>
+                                <p className="text-xs text-ink/40 mt-0.5">{writer.description}</p>
+                              </div>
+                              {writerId === writer.id && (
+                                <div className="w-2 h-2 rounded-full bg-gold-500 mt-2" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+              )}
+            </div>
+
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowContinueModal(false)}
+                className="flex-1 rounded-lg border border-gold-300 px-4 py-2.5 text-sm text-ink/70 hover:bg-parchment/40 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleContinue}
+                disabled={continuing}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-sm text-white font-medium transition-all hover:shadow-lg hover:shadow-emerald-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {continuing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                {continuing ? '续写中...' : '开始续写'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
