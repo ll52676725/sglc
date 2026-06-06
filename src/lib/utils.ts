@@ -289,6 +289,9 @@ export async function compressVideo(
       height = Math.round(height * ratio)
     }
 
+    width = width % 2 === 0 ? width : width - 1
+    height = height % 2 === 0 ? height : height - 1
+
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
@@ -297,6 +300,24 @@ export async function compressVideo(
     if (!ctx) {
       cleanup()
       return file
+    }
+
+    video.playbackRate = 1.0
+    
+    try {
+      await video.play()
+      await new Promise(r => setTimeout(r, 200))
+    } catch (e) {
+      console.warn('[compressVideo] Video play failed:', e)
+      cleanup()
+      return file
+    }
+
+    try {
+      ctx.drawImage(video, 0, 0, width, height)
+      await new Promise(r => setTimeout(r, 100))
+    } catch (e) {
+      console.warn('[compressVideo] Initial frame draw failed:', e)
     }
 
     const codecVariants = getMimeTypeVariants(codec, format)
@@ -329,15 +350,23 @@ export async function compressVideo(
 
     const stream = canvas.captureStream(fps)
 
-    let mediaRecorder: MediaRecorder
+    let mediaRecorder: MediaRecorder | null = null
     let actualMimeType = selectedMimeType
+    let actualTimeslice = 250
+    
+    const isVP9 = codec === 'vp9' || selectedMimeType.includes('vp9')
+    if (isVP9) {
+      actualTimeslice = 1000
+      targetBitrate = Math.max(targetBitrate, 1500000)
+    }
     
     const recorderConfigs = [
       { mimeType: selectedMimeType, videoBitsPerSecond: targetBitrate },
       { mimeType: selectedMimeType, videoBitsPerSecond: Math.max(targetBitrate * 0.8, 500000) },
+      { mimeType: selectedMimeType, videoBitsPerSecond: Math.max(targetBitrate * 0.6, 300000) },
       { mimeType: selectedMimeType },
-      ...fallbackMimeTypes.filter(t => t !== selectedMimeType).map(t => ({ mimeType: t, videoBitsPerSecond: targetBitrate })),
-      ...fallbackMimeTypes.filter(t => t !== selectedMimeType).map(t => ({ mimeType: t })),
+      ...fallbackMimeTypes.filter(t => t !== selectedMimeType && !t.includes('vp9')).map(t => ({ mimeType: t, videoBitsPerSecond: targetBitrate })),
+      ...fallbackMimeTypes.filter(t => t !== selectedMimeType && !t.includes('vp9')).map(t => ({ mimeType: t })),
     ]
 
     let recorderCreated = false
@@ -346,17 +375,25 @@ export async function compressVideo(
         if (!MediaRecorder.isTypeSupported(config.mimeType)) {
           continue
         }
+        console.log('[compressVideo] Trying MediaRecorder config:', config)
         mediaRecorder = new MediaRecorder(stream, config)
         actualMimeType = config.mimeType
+        
+        if (!config.mimeType.includes('vp9')) {
+          actualTimeslice = 250
+        }
+        
         recorderCreated = true
+        console.log('[compressVideo] MediaRecorder created successfully with:', actualMimeType)
         break
       } catch (e) {
-        console.warn(`Failed to create MediaRecorder with config ${JSON.stringify(config)}:`, e)
+        console.warn(`[compressVideo] Failed to create MediaRecorder with config ${JSON.stringify(config)}:`, e)
         continue
       }
     }
 
-    if (!recorderCreated) {
+    if (!recorderCreated || !mediaRecorder) {
+      console.warn('[compressVideo] No MediaRecorder config worked, using original file')
       cleanup()
       return file
     }
@@ -366,6 +403,10 @@ export async function compressVideo(
       if (e.data && e.data.size > 0) {
         chunks.push(e.data)
       }
+    }
+    
+    mediaRecorder.onstart = () => {
+      console.log('[compressVideo] MediaRecorder started successfully')
     }
 
     let resolved = false
@@ -384,10 +425,12 @@ export async function compressVideo(
       } catch (e) {}
       
       try {
-        if (mediaRecorder.state === 'recording') {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
           mediaRecorder.stop()
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[compressVideo] Error stopping MediaRecorder:', e)
+      }
       
       stream.getTracks().forEach(track => track.stop())
       cleanup?.()
@@ -398,12 +441,17 @@ export async function compressVideo(
       
       try {
         if (chunks.length === 0) {
+          console.warn('[compressVideo] No data chunks received')
           finish(file)
           return
         }
         
+        console.log(`[compressVideo] Received ${chunks.length} chunks, processing...`)
         const blob = new Blob(chunks, { type: actualMimeType })
+        console.log(`[compressVideo] Final blob size: ${blob.size} bytes`)
+        
         if (blob.size < 1000) {
+          console.warn('[compressVideo] Blob too small, using original')
           finish(file)
           return
         }
@@ -420,30 +468,21 @@ export async function compressVideo(
         
         finish(compressedFile)
       } catch (e) {
-        console.warn('Compression result error:', e)
+        console.warn('[compressVideo] Compression result error:', e)
         finish(file)
       }
     }
 
     mediaRecorder.onerror = (e) => {
-      console.warn('MediaRecorder error:', e)
+      console.warn('[compressVideo] MediaRecorder error:', e)
       finish(file)
     }
 
-    video.playbackRate = 1.0
-    
     try {
-      await video.play()
+      console.log('[compressVideo] Starting MediaRecorder with timeslice:', actualTimeslice)
+      mediaRecorder.start(actualTimeslice)
     } catch (e) {
-      console.warn('Video play failed:', e)
-      cleanup()
-      return file
-    }
-
-    try {
-      mediaRecorder.start(250)
-    } catch (e) {
-      console.warn('MediaRecorder start failed:', e)
+      console.warn('[compressVideo] MediaRecorder start failed:', e)
       cleanup()
       return file
     }
