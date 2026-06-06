@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Trash2, Download, Edit3, Save, Loader2, Sparkles,
   Calendar, ChevronDown, X, Image, Clock, Feather,
-  Scroll, Star, RefreshCw, PenTool
+  Scroll, Star, RefreshCw, PenTool, FileText, FileDown
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import type { Biography, BiographyChapter, WriterStyle } from '@/types'
 import { STYLE_LABELS, STYLE_DESCRIPTIONS, STYLE_ICONS } from '@/types'
 import { cn } from '@/lib/utils'
+import { exportBiographyAsPDF, exportBiographyAsWord } from '@/lib/biographyExport'
 
 export default function BiographyPage() {
   const navigate = useNavigate()
@@ -33,6 +34,9 @@ export default function BiographyPage() {
   const [continueStartDate, setContinueStartDate] = useState<string>('')
   const [continueEndDate, setContinueEndDate] = useState<string>('')
   const [continuing, setContinuing] = useState(false)
+  const [showExportDropdown, setShowExportDropdown] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
 
   useEffect(() => {
     api.biography.list().then(setBiographies).catch(() => {})
@@ -174,6 +178,36 @@ export default function BiographyPage() {
       setCurrentBio({ ...currentBio, chapters })
       setEditing(false)
     } catch {}
+  }
+
+  const handleExportPDF = async () => {
+    if (!currentBio) return
+    setExporting(true)
+    setExportError('')
+    setShowExportDropdown(false)
+    try {
+      await exportBiographyAsPDF(currentBio)
+    } catch (err: any) {
+      setExportError(err.message || '导出PDF失败，请重试')
+      setTimeout(() => setExportError(''), 5000)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleExportWord = async () => {
+    if (!currentBio) return
+    setExporting(true)
+    setExportError('')
+    setShowExportDropdown(false)
+    try {
+      await exportBiographyAsWord(currentBio)
+    } catch (err: any) {
+      setExportError(err.message || '导出Word失败，请重试')
+      setTimeout(() => setExportError(''), 5000)
+    } finally {
+      setExporting(false)
+    }
   }
 
   const formatDateRange = (start: string, end: string) => {
@@ -482,10 +516,53 @@ export default function BiographyPage() {
                     保存
                   </button>
                 )}
-                <button className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-4 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors">
-                  <Download className="w-4 h-4" />
-                  导出
-                </button>
+                {exportError && (
+                  <p className="w-full text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg mb-2">{exportError}</p>
+                )}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowExportDropdown(!showExportDropdown)}
+                    disabled={exporting}
+                    className="flex items-center gap-1.5 rounded-lg border border-gold-300 px-4 py-2 text-sm text-ink/70 hover:bg-parchment/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {exporting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    {exporting ? '导出中...' : '导出'}
+                    <ChevronDown size={14} className={cn('transition-transform', showExportDropdown && 'rotate-180')} />
+                  </button>
+                  {showExportDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowExportDropdown(false)} />
+                      <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-xl border border-gold-200/60 z-20 w-48 overflow-hidden">
+                        <button
+                          onClick={handleExportPDF}
+                          disabled={exporting}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gold-50 disabled:opacity-50 disabled:cursor-not-allowed border-b border-gold-100"
+                        >
+                          <FileText className="w-5 h-5 text-red-500" />
+                          <div>
+                            <p className="text-sm font-medium text-ink/80">导出为 PDF</p>
+                            <p className="text-xs text-ink/40">适合打印和分享</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={handleExportWord}
+                          disabled={exporting}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gold-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FileDown className="w-5 h-5 text-blue-500" />
+                          <div>
+                            <p className="text-sm font-medium text-ink/80">导出为 Word</p>
+                            <p className="text-xs text-ink/40">可编辑文档格式</p>
+                          </div>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
