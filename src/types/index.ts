@@ -6,7 +6,7 @@ export interface VideoQuality {
 
 export interface MediaItem {
   id: string
-  type: 'photo' | 'video'
+  type: 'photo' | 'video' | 'audio'
   filename: string
   url: string
   thumbnailUrl: string
@@ -29,13 +29,14 @@ export interface MediaItem {
 
 export interface MomentMedia {
   id: string
-  type: 'photo' | 'video'
+  type: 'photo' | 'video' | 'audio'
   filename: string
   url: string
   thumbnailUrl: string
   dateTaken?: string | null
   description?: string
   location?: string
+  duration?: number
   processingStatus?: 'pending' | 'processing' | 'completed' | 'failed'
   processingId?: string
 }

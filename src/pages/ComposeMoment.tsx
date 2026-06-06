@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   X,
   Image,
   Video,
+  Mic,
   Smile,
   MapPin,
   CloudSun,
@@ -12,6 +13,8 @@ import {
   Plus,
   Trash2,
   Play,
+  Square,
+  Pause,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Moment, MomentMedia } from '@/types'
@@ -35,16 +38,23 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
     return now.toISOString().slice(0, 16)
   })
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [previewUrls, setPreviewUrls] = useState<{ url: string; type: 'photo' | 'video' }[]>([])
+  const [previewUrls, setPreviewUrls] = useState<{ url: string; type: 'photo' | 'video' | 'audio'; duration?: number }[]>([])
   const [videoThumbnails, setVideoThumbnails] = useState<Map<string, Blob>>(new Map())
   const [showMoodPicker, setShowMoodPicker] = useState(false)
   const [showWeatherPicker, setShowWeatherPicker] = useState(false)
   const [showTagInput, setShowTagInput] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([])
+  const [recordingError, setRecordingError] = useState('')
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const audioInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingTimerRef = useRef<number | null>(null)
 
   const generateVideoThumbnail = (file: File): Promise<{ url: string; thumbnailBlob: Blob }> => {
     return new Promise((resolve, reject) => {
@@ -138,6 +148,112 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
     if (e.target) e.target.value = ''
   }
 
+  const getAudioDuration = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const audio = document.createElement('audio')
+      audio.src = URL.createObjectURL(file)
+      audio.preload = 'metadata'
+
+      audio.onloadedmetadata = () => {
+        resolve(audio.duration)
+        URL.revokeObjectURL(audio.src)
+      }
+
+      audio.onerror = () => {
+        resolve(0)
+        URL.revokeObjectURL(audio.src)
+      }
+    })
+  }
+
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const remaining = 9 - selectedFiles.length
+    const toAdd = files.slice(0, remaining)
+    if (toAdd.length === 0) return
+
+    setSelectedFiles(prev => [...prev, ...toAdd])
+
+    for (const file of toAdd) {
+      try {
+        const duration = await getAudioDuration(file)
+        setPreviewUrls(prev => [...prev, { url: URL.createObjectURL(file), type: 'audio', duration }])
+      } catch {
+        setPreviewUrls(prev => [...prev, { url: URL.createObjectURL(file), type: 'audio' }])
+      }
+    }
+
+    if (e.target) e.target.value = ''
+  }
+
+  const recordedChunksRef = useRef<Blob[]>([])
+
+  const startRecording = async () => {
+    try {
+      setRecordingError('')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      recordedChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setRecordedChunks([])
+      setIsRecording(true)
+      setRecordingTime(0)
+
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+
+    } catch (err: any) {
+      setRecordingError(err.message || '无法访问麦克风，请检查权限设置')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+      }
+
+      setTimeout(() => {
+        if (recordedChunksRef.current.length > 0) {
+          const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
+          const file = new File([blob], `voice_${Date.now()}.webm`, { type: 'audio/webm' })
+
+          setSelectedFiles(prev => [...prev, file])
+          setPreviewUrls(prev => [...prev, { url: URL.createObjectURL(blob), type: 'audio', duration: recordingTime }])
+        }
+        setIsRecording(false)
+        setRecordingTime(0)
+      }, 100)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop()
+      }
+    }
+  }, [isRecording])
+
   const removeFile = (index: number) => {
     URL.revokeObjectURL(previewUrls[index].url)
     const file = selectedFiles[index]
@@ -216,41 +332,63 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
           />
 
           {previewUrls.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {previewUrls.map((preview, i) => (
-                <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gold-50 group">
-                  {preview.type === 'video' ? (
-                    <div className="relative w-full h-full">
-                      <img src={preview.url} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
-                          <Play size={20} className="text-white ml-0.5" fill="white" />
+            <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                {previewUrls.map((preview, i) => (
+                  <div key={i} className="relative rounded-lg overflow-hidden bg-gold-50 group">
+                    {preview.type === 'audio' ? (
+                      <div className="aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-gold-100 to-gold-200/50 p-2">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 flex items-center justify-center mb-1 shadow-md">
+                          <Play size={18} className="text-white ml-0.5" fill="white" />
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-gold-700">
+                          <Mic size={10} />
+                          <span>
+                            {preview.duration
+                              ? `${Math.floor(preview.duration / 60)}:${Math.floor(preview.duration % 60).toString().padStart(2, '0')}`
+                              : '语音'
+                            }
+                          </span>
+                        </div>
+                        <div className="absolute top-1 left-1 bg-gold-600/80 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                          <Mic size={10} /> 语音
                         </div>
                       </div>
-                      <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Video size={10} /> 视频
+                    ) : preview.type === 'video' ? (
+                      <div className="relative aspect-square w-full">
+                        <img src={preview.url} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center">
+                            <Play size={20} className="text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                          <Video size={10} /> 视频
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <img src={preview.url} alt="" className="w-full h-full object-cover" />
-                  )}
+                    ) : (
+                      <div className="aspect-square">
+                        <img src={preview.url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => removeFile(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {previewUrls.length < 9 && (
                   <button
-                    onClick={() => removeFile(i)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="aspect-square rounded-lg border-2 border-dashed border-gold-300/60 flex flex-col items-center justify-center text-gold-400 hover:bg-gold-50 hover:text-gold-500 transition"
                   >
-                    <X size={12} />
+                    <Plus size={20} />
+                    <span className="text-[10px] mt-0.5">添加</span>
                   </button>
-                </div>
-              ))}
-              {previewUrls.length < 9 && (
-                <button
-                  onClick={() => photoInputRef.current?.click()}
-                  className="aspect-square rounded-lg border-2 border-dashed border-gold-300/60 flex flex-col items-center justify-center text-gold-400 hover:bg-gold-50 hover:text-gold-500 transition"
-                >
-                  <Plus size={20} />
-                  <span className="text-[10px] mt-0.5">添加</span>
-                </button>
-              )}
+                )}
+              </div>
             </div>
           )}
 
@@ -268,6 +406,14 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
             multiple
             accept="video/*"
             onChange={handleVideoSelect}
+            className="hidden"
+          />
+          <input
+            ref={audioInputRef}
+            type="file"
+            multiple
+            accept="audio/*"
+            onChange={handleAudioSelect}
             className="hidden"
           />
 
@@ -368,6 +514,38 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
               <Video size={14} />
               视频
             </button>
+
+            <div className="relative">
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition',
+                  isRecording
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-gold-50 text-ink/50 hover:bg-gold-100'
+                )}
+              >
+                {isRecording ? (
+                  <>
+                    <Square size={14} fill="currentColor" />
+                    录音中 {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                  </>
+                ) : (
+                  <>
+                    <Mic size={14} />
+                    语音
+                  </>
+                )}
+              </button>
+            </div>
+
+            <button
+              onClick={() => audioInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-gold-50 text-ink/50 hover:bg-gold-100 transition"
+            >
+              <Mic size={14} />
+              音频文件
+            </button>
           </div>
 
           {showTagInput && (
@@ -427,6 +605,9 @@ export default function ComposeMoment({ onClose, onSuccess }: ComposeMomentProps
 
           {error && (
             <p className="text-red-500 text-sm">{error}</p>
+          )}
+          {recordingError && (
+            <p className="text-red-500 text-sm">{recordingError}</p>
           )}
         </div>
 

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check, Loader2, Clock, FileVideo, Info } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check, Loader2, Clock, FileVideo, FileAudio, Mic, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { CATEGORY_LABELS } from '@/types'
 import type { MediaItem, Album } from '@/types'
 import { cn, formatFileSize } from '@/lib/utils'
 import VideoPlayer from '@/components/VideoPlayer'
+import AudioPlayer from '@/components/AudioPlayer'
 
 export default function MediaDetail() {
   const { id } = useParams<{ id: string }>()
@@ -139,7 +140,31 @@ export default function MediaDetail() {
           </button>
         )}
 
-        {item.type === 'video' ? (
+        {item.type === 'audio' ? (
+          <div className="relative">
+            {item.processingStatus === 'processing' ? (
+              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-12 max-w-[70vw]">
+                <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+                <p className="text-white/80 text-lg mb-2">语音处理中...</p>
+                <p className="text-white/50 text-sm">处理完成后即可播放</p>
+              </div>
+            ) : (
+              <div className="bg-ink/20 rounded-xl p-8 max-w-[60vw]">
+                <div className="text-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
+                    <Mic className="w-8 h-8 text-white" />
+                  </div>
+                  <p className="text-white/80 text-sm">{item.filename}</p>
+                </div>
+                <AudioPlayer
+                  src={item.url}
+                  duration={item.duration}
+                  className="bg-white/10"
+                />
+              </div>
+            )}
+          </div>
+        ) : item.type === 'video' ? (
           <div className="relative">
             {item.processingStatus === 'processing' ? (
               <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-12 max-w-[70vw]">
@@ -356,6 +381,54 @@ export default function MediaDetail() {
               )}
             </div>
           </div>
+          )}
+
+          {item.type === 'audio' && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                <FileAudio size={14} /> 语音信息
+              </label>
+              <div className="bg-white/50 rounded-lg p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-ink/50">文件名</span>
+                  <span className="text-ink/80 truncate max-w-[160px]" title={item.filename}>{item.filename}</span>
+                </div>
+                {item.duration !== undefined && item.duration > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-ink/50">时长</span>
+                    <span className="text-ink/80">{Math.floor(item.duration / 60)}分{Math.floor(item.duration % 60)}秒</span>
+                  </div>
+                )}
+                {item.url && (
+                  <div className="flex justify-between">
+                    <span className="text-ink/50">格式</span>
+                    <span className="text-ink/80 uppercase">{item.url.split('.').pop()?.split('?')[0]}</span>
+                  </div>
+                )}
+                {item.processingStatus && (
+                  <div className="pt-2 border-t border-gold-100">
+                    <div className="flex items-center gap-2">
+                      {item.processingStatus === 'processing' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                          <span className="text-blue-600 text-xs">处理中...</span>
+                        </>
+                      ) : item.processingStatus === 'completed' ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-500" />
+                          <span className="text-green-600 text-xs">处理完成</span>
+                        </>
+                      ) : item.processingStatus === 'failed' ? (
+                        <>
+                          <X className="w-4 h-4 text-red-500" />
+                          <span className="text-red-600 text-xs">处理失败</span>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

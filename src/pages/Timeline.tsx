@@ -8,6 +8,7 @@ import {
   Trash2,
   Image,
   Video,
+  Mic,
   Smile,
   CloudSun,
   Tag,
@@ -24,6 +25,7 @@ import type { Moment, MomentMedia } from '@/types'
 import { MOOD_OPTIONS, WEATHER_OPTIONS } from '@/types'
 import { cn } from '@/lib/utils'
 import ComposeMoment from './ComposeMoment'
+import AudioPlayer from '@/components/AudioPlayer'
 
 function formatRelativeTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -62,19 +64,20 @@ function getWeatherEmoji(weather: string) {
   return found ? found.emoji : ''
 }
 
-function ProcessingOverlay({ status }: { status: 'processing' | 'failed' | 'pending' }) {
+function ProcessingOverlay({ status, type = 'video' }: { status: 'processing' | 'failed' | 'pending'; type?: 'video' | 'audio' }) {
+  const typeLabel = type === 'audio' ? '语音' : '视频'
   if (status === 'failed') {
     return (
       <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
         <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
-        <p className="text-white text-sm">视频处理失败</p>
+        <p className="text-white text-sm">{typeLabel}处理失败</p>
       </div>
     )
   }
   return (
     <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
       <Loader2 className="w-8 h-8 text-gold-400 animate-spin mb-2" />
-      <p className="text-white text-sm">视频处理中...</p>
+      <p className="text-white text-sm">{typeLabel}处理中...</p>
       <p className="text-white/60 text-xs mt-1">请稍候，处理完成后自动显示</p>
     </div>
   )
@@ -82,11 +85,29 @@ function ProcessingOverlay({ status }: { status: 'processing' | 'failed' | 'pend
 
 function MediaItem({ m, onMediaClick, single }: { m: MomentMedia; onMediaClick: (m: MomentMedia) => void; single?: boolean }) {
   const isVideo = m.type === 'video'
-  const isProcessing = isVideo && m.processingStatus === 'processing'
-  const isFailed = isVideo && m.processingStatus === 'failed'
+  const isAudio = m.type === 'audio'
+  const isProcessing = (isVideo || isAudio) && m.processingStatus === 'processing'
+  const isFailed = (isVideo || isAudio) && m.processingStatus === 'failed'
   const showOverlay = isProcessing || isFailed
 
   if (single) {
+    if (isAudio) {
+      return (
+        <div className="mt-3">
+          {showOverlay ? (
+            <div className="relative rounded-xl overflow-hidden aspect-[2/1] bg-gold-100">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Mic className="w-12 h-12 text-gold-300" />
+              </div>
+              <ProcessingOverlay status={m.processingStatus as any} type="audio" />
+            </div>
+          ) : (
+            <AudioPlayer src={m.url} duration={m.duration} />
+          )}
+        </div>
+      )
+    }
+
     return (
       <div
         className={cn(
@@ -111,7 +132,7 @@ function MediaItem({ m, onMediaClick, single }: { m: MomentMedia; onMediaClick: 
                 </div>
               </div>
             )}
-            {showOverlay && <ProcessingOverlay status={m.processingStatus as any} />}
+            {showOverlay && <ProcessingOverlay status={m.processingStatus as any} type="video" />}
           </div>
         ) : (
           <img src={m.url} alt="" className="w-full max-h-96 object-cover rounded-xl" />
@@ -125,9 +146,27 @@ function MediaItem({ m, onMediaClick, single }: { m: MomentMedia; onMediaClick: 
       className={cn(
         'relative cursor-pointer group overflow-hidden aspect-square',
       )}
-      onClick={() => !showOverlay && onMediaClick(m)}
+      onClick={() => !showOverlay && !isAudio && onMediaClick(m)}
     >
-      {isVideo && !m.thumbnailUrl ? (
+      {isAudio ? (
+        <div className={cn('w-full h-full bg-gradient-to-br from-gold-100 to-gold-200/50 flex flex-col items-center justify-center p-2', showOverlay && 'blur-sm')}>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 flex items-center justify-center mb-1 shadow-md">
+            <Play size={18} className="text-white ml-0.5" fill="white" />
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-gold-700">
+            <Mic size={10} />
+            <span>
+              {m.duration
+                ? `${Math.floor(m.duration / 60)}:${Math.floor(m.duration % 60).toString().padStart(2, '0')}`
+                : '语音'
+              }
+            </span>
+          </div>
+          <div className="absolute top-2 left-2 bg-gold-600/80 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 z-20">
+            <Mic size={10} /> 语音
+          </div>
+        </div>
+      ) : isVideo && !m.thumbnailUrl ? (
         <div className={cn('w-full h-full bg-gold-100 flex items-center justify-center', showOverlay && 'blur-sm')}>
           <Video className="w-8 h-8 text-gold-300" />
         </div>
@@ -139,7 +178,7 @@ function MediaItem({ m, onMediaClick, single }: { m: MomentMedia; onMediaClick: 
           <Play size={10} fill="white" /> 视频
         </div>
       )}
-      {showOverlay && <ProcessingOverlay status={m.processingStatus as any} />}
+      {showOverlay && <ProcessingOverlay status={m.processingStatus as any} type={isAudio ? 'audio' : 'video'} />}
     </div>
   )
 }
@@ -156,9 +195,9 @@ function MediaGrid({ media, onMediaClick, onUpdate }: {
   }, [media])
 
   const checkProcessingStatus = useCallback(async () => {
-    const processingVideos = localMedia.filter(m => m.type === 'video' && m.processingStatus === 'processing' && m.processingId)
+    const processingItems = localMedia.filter(m => (m.type === 'video' || m.type === 'audio') && m.processingStatus === 'processing' && m.processingId)
     
-    for (const m of processingVideos) {
+    for (const m of processingItems) {
       try {
         const status = await api.media.getProcessingStatus(m.processingId!)
         if (status?.status === 'completed' || status?.status === 'failed') {
@@ -168,6 +207,7 @@ function MediaGrid({ media, onMediaClick, onUpdate }: {
                 ...item,
                 processingStatus: status.status,
                 thumbnailUrl: status.result?.thumbnailUrl || item.thumbnailUrl,
+                duration: status.result?.duration || item.duration,
               }
               onUpdate?.(m.id, updated)
               return updated
@@ -182,7 +222,7 @@ function MediaGrid({ media, onMediaClick, onUpdate }: {
   }, [localMedia, onUpdate])
 
   useEffect(() => {
-    const hasProcessing = localMedia.some(m => m.type === 'video' && m.processingStatus === 'processing')
+    const hasProcessing = localMedia.some(m => (m.type === 'video' || m.type === 'audio') && m.processingStatus === 'processing')
     if (!hasProcessing) return
 
     checkProcessingStatus()
@@ -316,6 +356,7 @@ function MomentCard({ moment, onDelete, onUpdateMedia }: {
           <span className="flex items-center gap-1">
             {moment.media.some(m => m.type === 'photo') && <><Image size={12} /> {moment.media.filter(m => m.type === 'photo').length} 张照片</>}
             {moment.media.some(m => m.type === 'video') && <><Video size={12} /> {moment.media.filter(m => m.type === 'video').length} 个视频</>}
+            {moment.media.some(m => m.type === 'audio') && <><Mic size={12} /> {moment.media.filter(m => m.type === 'audio').length} 条语音</>}
           </span>
         )}
       </div>
