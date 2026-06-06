@@ -32,6 +32,8 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
     }
 
     const albumId = req.body.albumId as string | undefined
+    const syncToMoments = req.body.syncToMoments === 'true' || req.body.syncToMoments === true
+    const momentContent = req.body.momentContent as string || ''
     const db = await getDb()
     const mediaList = []
 
@@ -130,7 +132,52 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
       })
     }
 
-    res.json({ success: true, data: mediaList })
+    let createdMoment: any = null
+    if (syncToMoments && mediaList.length > 0) {
+      const momentId = v4()
+      const now = new Date().toISOString()
+      run(db, `INSERT INTO moments (id, content, happened_at) VALUES (?, ?, ?)`, [
+        momentId, momentContent, now,
+      ])
+
+      let sortOrder = 0
+      for (const m of mediaList) {
+        run(db, `INSERT OR IGNORE INTO moment_media (moment_id, media_id, sort_order) VALUES (?, ?, ?)`, [
+          momentId, m.id, sortOrder++,
+        ])
+      }
+
+      const momentTags = all<{ tag: string }>(db, `SELECT tag FROM moment_tags WHERE moment_id = ?`, [momentId])
+      const momentMedia = all<{
+        m_id: string; m_type: string; m_filename: string; m_url: string; m_thumbnail_url: string;
+      }>(db, `
+        SELECT media.id as m_id, media.type as m_type, media.filename as m_filename,
+               media.url as m_url, media.thumbnail_url as m_thumbnail_url
+        FROM moment_media mm JOIN media ON mm.media_id = media.id
+        WHERE mm.moment_id = ? ORDER BY mm.sort_order
+      `, [momentId])
+
+      createdMoment = {
+        id: momentId,
+        content: momentContent,
+        mood: '',
+        weather: '',
+        location: '',
+        happenedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        tags: momentTags.map(t => t.tag),
+        media: momentMedia.map(m => ({
+          id: m.m_id,
+          type: m.m_type,
+          filename: m.m_filename,
+          url: m.m_url,
+          thumbnailUrl: m.m_thumbnail_url,
+        })),
+      }
+    }
+
+    res.json({ success: true, data: { media: mediaList, moment: createdMoment } })
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message })
   }

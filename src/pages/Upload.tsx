@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { 
   CloudUpload, Check, FileImage, FileVideo, FolderOpen, Zap, 
   ArrowRight, Settings, ChevronDown, ChevronUp, Info, X, 
-  Play, Upload as UploadIcon 
+  Play, Upload as UploadIcon, Clock
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
@@ -46,7 +46,7 @@ interface UploadingFile {
 
 export default function Upload() {
   const navigate = useNavigate()
-  const { addMedia, albums, setAlbums } = useStore()
+  const { addMedia, albums, setAlbums, addMoment } = useStore()
   const [isDragging, setIsDragging] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([])
   const [uploading, setUploading] = useState(false)
@@ -60,6 +60,8 @@ export default function Upload() {
   const [videoFormat, setVideoFormat] = useState<VideoFormat>('webm')
   const [supportedCodecs, setSupportedCodecs] = useState<VideoCodec[]>([])
   const [supportedFormats, setSupportedFormats] = useState<VideoFormat[]>([])
+  const [syncToMoments, setSyncToMoments] = useState(false)
+  const [momentContent, setMomentContent] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -235,9 +237,12 @@ export default function Upload() {
       const result = await api.media.upload(
         processedFiles,
         selectedAlbumId || undefined,
-        videoThumbnails.size > 0 ? videoThumbnails : undefined
+        videoThumbnails.size > 0 ? videoThumbnails : undefined,
+        syncToMoments,
+        momentContent
       )
-      const items = (Array.isArray(result) ? result : [])
+      const items = (result.media || (Array.isArray(result) ? result : []))
+      const createdMoment = result.moment
 
       setUploadingFiles((prev) =>
         prev.map((f, idx) => {
@@ -257,6 +262,10 @@ export default function Upload() {
 
       if (items.length > 0) {
         addMedia(items)
+      }
+
+      if (createdMoment) {
+        addMoment(createdMoment)
       }
 
       setUploadedUrls(items.map((m: any) => m.thumbnailUrl || m.url || ''))
@@ -417,6 +426,30 @@ export default function Upload() {
                   </select>
                 </div>
               )}
+
+              <div className="flex-1 min-w-[280px]">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+                  <Clock size={14} /> 同步到时光动态
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncToMoments}
+                    onChange={(e) => setSyncToMoments(e.target.checked)}
+                    className="w-4 h-4 text-gold-500 rounded border-gold-300 focus:ring-gold-500"
+                  />
+                  <span className="text-sm text-ink/70">上传后同步发布到时光动态</span>
+                </label>
+                {syncToMoments && (
+                  <textarea
+                    value={momentContent}
+                    onChange={(e) => setMomentContent(e.target.value)}
+                    placeholder="写下此刻的心情（可选）..."
+                    rows={2}
+                    className="w-full mt-2 border border-gold-200 rounded-lg px-3 py-2 text-sm bg-white/80 focus:outline-none focus:ring-2 focus:ring-gold-400 resize-none"
+                  />
+                )}
+              </div>
 
               {videoCount > 0 && (
                 <div className="flex-1 min-w-[280px]">

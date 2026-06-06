@@ -11,7 +11,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   media: {
-    upload: async (files: File[], albumId?: string, videoThumbnails?: Map<string, Blob>): Promise<any> => {
+    upload: async (files: File[], albumId?: string, videoThumbnails?: Map<string, Blob>, syncToMoments?: boolean, momentContent?: string): Promise<any> => {
       const form = new FormData()
       files.forEach((f) => form.append('files', f))
       if (albumId) {
@@ -21,6 +21,12 @@ export const api = {
         videoThumbnails.forEach((blob, filename) => {
           form.append('thumbnails', blob, `thumb_${filename}.jpg`)
         })
+      }
+      if (syncToMoments) {
+        form.append('syncToMoments', 'true')
+        if (momentContent) {
+          form.append('momentContent', momentContent)
+        }
       }
       return request('/media/upload', { method: 'POST', body: form })
     },

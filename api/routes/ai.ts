@@ -3,6 +3,29 @@ import { getDb, all } from '../db.js'
 
 const router = Router()
 
+const PEOPLE_KEYWORDS = [
+  { pattern: /爸爸|老爸|父亲|爹|dad|father/, name: '爸爸', icon: '👨' },
+  { pattern: /妈妈|老妈|母亲|娘|mom|mother|mum/, name: '妈妈', icon: '👩' },
+  { pattern: /爷爷|祖父|姥爷|外公|grandpa|grandfather/, name: '爷爷', icon: '👴' },
+  { pattern: /奶奶|祖母|姥姥|外婆|grandma|grandmother/, name: '奶奶', icon: '👵' },
+  { pattern: /哥哥|老哥|兄|brother|bro/, name: '哥哥', icon: '👦' },
+  { pattern: /弟弟|老弟|弟|younger brother/, name: '弟弟', icon: '👦' },
+  { pattern: /姐姐|老姐|姐|sister/, name: '姐姐', icon: '👧' },
+  { pattern: /妹妹|小妹|妹|younger sister/, name: '妹妹', icon: '👧' },
+  { pattern: /儿子|儿子|boy|son/, name: '儿子', icon: '👦' },
+  { pattern: /女儿|闺女|girl|daughter/, name: '女儿', icon: '👧' },
+  { pattern: /丈夫|老公|先生|hubby|husband/, name: '丈夫', icon: '👨' },
+  { pattern: /妻子|老婆|夫人|太太|wife/, name: '妻子', icon: '👩' },
+  { pattern: /朋友|好友|friend|buddy|pal/, name: '朋友', icon: '🧑' },
+  { pattern: /同事|工友|colleague|coworker/, name: '同事', icon: '🧑' },
+  { pattern: /同学|同窗|classmate/, name: '同学', icon: '🧑' },
+  { pattern: /老师|教师|teacher|master/, name: '老师', icon: '🧑‍🏫' },
+  { pattern: /宝宝|宝贝|baby|babe/, name: '宝宝', icon: '👶' },
+  { pattern: /孩子|小孩|kid|child|children/, name: '孩子', icon: '👶' },
+  { pattern: /一家人|全家|family/, name: '家人', icon: '👨‍👩‍👧‍👦' },
+  { pattern: /自拍|selfie|自己|me|myself|i/, name: '自己', icon: '🤳' },
+]
+
 const EVENT_KEYWORDS = [
   { pattern: /生日|birthday|周岁|蛋糕/, category: '生日', icon: '🎂' },
   { pattern: /婚礼|结婚|wedding|婚纱|求婚/, category: '婚礼', icon: '💒' },
@@ -55,6 +78,19 @@ function analyzeSeason(description: string, tags: string[], dateTaken: string | 
     return { season: '冬天', icon: '❄️' }
   }
   return null
+}
+
+function analyzePeople(description: string, tags: string[], filename: string): Array<{ name: string; icon: string }> {
+  const allText = `${filename} ${description} ${tags.join(' ')}`.toLowerCase()
+  const found = new Map<string, { name: string; icon: string }>()
+
+  for (const kw of PEOPLE_KEYWORDS) {
+    if (kw.pattern.test(allText)) {
+      found.set(kw.name, { name: kw.name, icon: kw.icon })
+    }
+  }
+
+  return Array.from(found.values())
 }
 
 function analyzeColorScheme(url: string): { primary: string; secondary: string } | null {
@@ -121,6 +157,12 @@ router.get('/classify/:albumId?', async (req: Request, res: Response): Promise<v
       const tagList = tags.map(t => t.tag)
 
       for (const p of people) {
+        if (!peopleMap.has(p.name)) peopleMap.set(p.name, new Set())
+        peopleMap.get(p.name)!.add(row.id)
+      }
+
+      const detectedPeople = analyzePeople(row.description, tagList, row.filename)
+      for (const p of detectedPeople) {
         if (!peopleMap.has(p.name)) peopleMap.set(p.name, new Set())
         peopleMap.get(p.name)!.add(row.id)
       }
@@ -210,12 +252,15 @@ router.get('/classify/:albumId?', async (req: Request, res: Response): Promise<v
       }
     }
 
+    const peopleIconMap = new Map<string, string>()
+    PEOPLE_KEYWORDS.forEach(kw => peopleIconMap.set(kw.name, kw.icon))
+
     const groups = {
       people: Array.from(peopleMap.entries()).map(([name, ids]) => ({
         name,
         mediaIds: Array.from(ids),
         count: ids.size,
-        icon: '👤',
+        icon: peopleIconMap.get(name) || '👤',
       })).sort((a, b) => b.count - a.count),
       locations: Array.from(locationMap.entries()).map(([name, ids]) => ({
         name,
