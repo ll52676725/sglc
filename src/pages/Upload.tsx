@@ -65,11 +65,18 @@ export default function Upload() {
             )
           )
 
+          let useOriginal = false
+          let finalFile = file
+
           try {
             const thumbnailBlob = await generateVideoThumbnail(file)
             videoThumbnails.set(file.name, thumbnailBlob)
+          } catch (e) {
+            console.warn('Thumbnail generation failed:', e)
+          }
 
-            if (enableCompression) {
+          if (enableCompression) {
+            try {
               const compressedFile = await compressVideo(file, {
                 maxWidth: 1280,
                 maxHeight: 720,
@@ -84,32 +91,34 @@ export default function Upload() {
                   )
                 },
               })
-              processedFiles.push(compressedFile)
-              setUploadingFiles((prev) =>
-                prev.map((f, idx) =>
-                  idx === i
-                    ? {
-                        ...f,
-                        compressedSize: compressedFile.size,
-                        progress: 40,
-                        status: 'uploading',
-                        statusText: '上传中...',
-                      }
-                    : f
+              
+              if (compressedFile.size > 0 && compressedFile.size < file.size * 1.5) {
+                finalFile = compressedFile
+                setUploadingFiles((prev) =>
+                  prev.map((f, idx) =>
+                    idx === i
+                      ? {
+                          ...f,
+                          compressedSize: compressedFile.size,
+                          progress: 40,
+                          status: 'uploading',
+                          statusText: '上传中...',
+                        }
+                      : f
+                  )
                 )
-              )
-            } else {
-              processedFiles.push(file)
-              setUploadingFiles((prev) =>
-                prev.map((f, idx) =>
-                  idx === i
-                    ? { ...f, progress: 40, status: 'uploading', statusText: '上传中...' }
-                    : f
-                )
-              )
+              } else {
+                useOriginal = true
+              }
+            } catch (e) {
+              console.warn('Video compression failed, using original:', e)
+              useOriginal = true
             }
-          } catch {
-            processedFiles.push(file)
+          } else {
+            useOriginal = true
+          }
+
+          if (useOriginal) {
             setUploadingFiles((prev) =>
               prev.map((f, idx) =>
                 idx === i
@@ -118,6 +127,8 @@ export default function Upload() {
               )
             )
           }
+
+          processedFiles.push(finalFile)
         } else {
           processedFiles.push(file)
           setUploadingFiles((prev) =>

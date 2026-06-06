@@ -78,12 +78,22 @@ export async function compressVideo(
 
   return new Promise((resolve, reject) => {
     const video = document.createElement('video')
-    video.preload = 'metadata'
-    video.muted = true
+    video.preload = 'auto'
+    video.muted = false
     video.playsInline = true
+    video.crossOrigin = 'anonymous'
 
     const url = URL.createObjectURL(file)
     video.src = url
+
+    const cleanup = () => {
+      try {
+        video.pause()
+        video.src = ''
+        video.load()
+      } catch (e) {}
+      URL.revokeObjectURL(url)
+    }
 
     video.onloadedmetadata = async () => {
       try {
@@ -99,45 +109,72 @@ export async function compressVideo(
         const canvas = document.createElement('canvas')
         canvas.width = width
         canvas.height = height
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext('2d', { willReadFrequently: false })
 
         if (!ctx) {
-          URL.revokeObjectURL(url)
-          reject(new Error('Failed to get canvas context'))
+          cleanup()
+          resolve(file)
           return
-        }
-
-        const stream = canvas.captureStream(fps)
-        const audioStream = await getAudioStream(file)
-        if (audioStream) {
-          audioStream.getAudioTracks().forEach(track => stream.addTrack(track))
         }
 
         const mimeTypes = [
           'video/webm;codecs=vp9,opus',
           'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
           'video/webm',
-          'video/mp4',
         ]
         
         let selectedMimeType = ''
         for (const type of mimeTypes) {
-          if (MediaRecorder.isTypeSupported(type)) {
+          if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
             selectedMimeType = type
             break
           }
         }
 
-        if (!selectedMimeType) {
-          URL.revokeObjectURL(url)
+        if (!selectedMimeType || typeof MediaRecorder === 'undefined') {
+          cleanup()
           resolve(file)
           return
         }
 
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: selectedMimeType,
-          videoBitsPerSecond: targetBitrate,
-        })
+        const videoStream = canvas.captureStream(fps)
+        let finalStream = videoStream
+
+        try {
+          const videoEl = video as any
+          if (videoEl.captureStream || videoEl.mozCaptureStream || videoEl.webkitCaptureStream) {
+            const captureStream = videoEl.captureStream || videoEl.mozCaptureStream || videoEl.webkitCaptureStream
+            const originalStream = captureStream.call(videoEl)
+            const audioTracks = originalStream.getAudioTracks()
+            if (audioTracks.length > 0) {
+              audioTracks.forEach((track: any) => videoStream.addTrack(track))
+            }
+          }
+        } catch (e) {
+          console.log('Audio capture not available, proceeding without audio')
+        }
+
+        let mediaRecorder: MediaRecorder
+        try {
+          mediaRecorder = new MediaRecorder(finalStream, {
+            mimeType: selectedMimeType,
+            videoBitsPerSecond: targetBitrate,
+            audioBitsPerSecond: 128000,
+          })
+        } catch (e) {
+          try {
+            mediaRecorder = new MediaRecorder(finalStream, {
+              mimeType: selectedMimeType,
+              videoBitsPerSecond: targetBitrate,
+            })
+          } catch (e2) {
+            cleanup()
+            resolve(file)
+            return
+          }
+        }
 
         const chunks: Blob[] = []
         mediaRecorder.ondataavailable = (e) => {
@@ -146,80 +183,118 @@ export async function compressVideo(
           }
         }
 
+        let stopped = false
+        const stopRecording = () => {
+          if (stopped) return
+          stopped = true
+          try {
+            if (mediaRecorder.state !== 'inactive') {
+              mediaRecorder.stop()
+            }
+          } catch (e) {}
+        }
+
         mediaRecorder.onstop = () => {
-          URL.revokeObjectURL(url)
-          const blob = new Blob(chunks, { type: selectedMimeType })
-          const ext = selectedMimeType.includes('webm') ? '.webm' : '.mp4'
-          const newFileName = file.name.replace(/\.[^/.]+$/, '') + ext
-          const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
-          resolve(compressedFile)
+          try {
+            cleanup()
+            if (chunks.length === 0) {
+              resolve(file)
+              return
+            }
+            const blob = new Blob(chunks, { type: selectedMimeType })
+            if (blob.size === 0) {
+              resolve(file)
+              return
+            }
+            const ext = selectedMimeType.includes('webm') ? '.webm' : '.mp4'
+            const newFileName = file.name.replace(/\.[^/.]+$/, '') + ext
+            const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
+            resolve(compressedFile)
+          } catch (e) {
+            cleanup()
+            resolve(file)
+          }
         }
 
         mediaRecorder.onerror = (e) => {
-          URL.revokeObjectURL(url)
-          reject(e)
+          console.warn('MediaRecorder error:', e)
+          stopRecording()
+          cleanup()
+          resolve(file)
         }
 
-        video.currentTime = 0
-        video.play()
-        mediaRecorder.start()
+        try {
+          await video.play()
+        } catch (e) {
+          console.warn('Video play failed:', e)
+          cleanup()
+          resolve(file)
+          return
+        }
 
-        const duration = video.duration
+        try {
+          mediaRecorder.start(1000)
+        } catch (e) {
+          console.warn('MediaRecorder start failed:', e)
+          cleanup()
+          resolve(file)
+          return
+        }
+
+        const duration = video.duration || 0
         let lastTime = 0
 
         const drawFrame = () => {
-          if (video.paused || video.ended) {
-            mediaRecorder.stop()
+          if (stopped) return
+
+          if (video.ended || video.paused) {
+            if (onProgress && duration > 0) {
+              onProgress(100)
+            }
+            setTimeout(stopRecording, 100)
             return
           }
 
-          ctx.drawImage(video, 0, 0, width, height)
+          try {
+            ctx.drawImage(video, 0, 0, width, height)
+          } catch (e) {
+            console.warn('Draw frame failed:', e)
+          }
 
           const currentTime = video.currentTime
           if (onProgress && duration > 0) {
-            const percent = Math.min(100, (currentTime / duration) * 100)
-            if (currentTime - lastTime > 0.1) {
+            const percent = Math.min(99, (currentTime / duration) * 100)
+            if (currentTime - lastTime > 0.1 || percent >= 99) {
               onProgress(percent)
               lastTime = currentTime
             }
           }
 
-          requestAnimationFrame(drawFrame)
+          if (!stopped) {
+            requestAnimationFrame(drawFrame)
+          }
+        }
+
+        video.onended = () => {
+          if (onProgress && duration > 0) {
+            onProgress(100)
+          }
+          setTimeout(stopRecording, 200)
         }
 
         drawFrame()
       } catch (err) {
-        URL.revokeObjectURL(url)
-        reject(err)
+        console.warn('Video compression failed:', err)
+        cleanup()
+        resolve(file)
       }
     }
 
     video.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Failed to load video for compression'))
+      cleanup()
+      resolve(file)
     }
   })
-}
-
-async function getAudioStream(file: File): Promise<MediaStream | null> {
-  try {
-    const url = URL.createObjectURL(file)
-    const audioContext = new AudioContext()
-    const response = await fetch(url)
-    const arrayBuffer = await response.arrayBuffer()
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-    
-    const destination = audioContext.createMediaStreamDestination()
-    const source = audioContext.createBufferSource()
-    source.buffer = audioBuffer
-    source.connect(destination)
-    source.start(0)
-    
-    URL.revokeObjectURL(url)
-    return destination.stream
-  } catch (e) {
-    return null
-  }
 }
 
 export function formatFileSize(bytes: number): string {
