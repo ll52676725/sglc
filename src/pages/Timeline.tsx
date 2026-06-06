@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus,
@@ -15,6 +15,8 @@ import {
   ChevronDown,
   CalendarDays,
   PenLine,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
@@ -60,40 +62,140 @@ function getWeatherEmoji(weather: string) {
   return found ? found.emoji : ''
 }
 
-function MediaGrid({ media, onMediaClick }: { media: MomentMedia[]; onMediaClick: (m: MomentMedia) => void }) {
-  if (media.length === 0) return null
+function ProcessingOverlay({ status }: { status: 'processing' | 'failed' | 'pending' }) {
+  if (status === 'failed') {
+    return (
+      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
+        <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
+        <p className="text-white text-sm">视频处理失败</p>
+      </div>
+    )
+  }
+  return (
+    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
+      <Loader2 className="w-8 h-8 text-gold-400 animate-spin mb-2" />
+      <p className="text-white text-sm">视频处理中...</p>
+      <p className="text-white/60 text-xs mt-1">请稍候，处理完成后自动显示</p>
+    </div>
+  )
+}
 
-  const count = media.length
+function MediaItem({ m, onMediaClick, single }: { m: MomentMedia; onMediaClick: (m: MomentMedia) => void; single?: boolean }) {
+  const isVideo = m.type === 'video'
+  const isProcessing = isVideo && m.processingStatus === 'processing'
+  const isFailed = isVideo && m.processingStatus === 'failed'
+  const showOverlay = isProcessing || isFailed
 
-  if (count === 1) {
-    const m = media[0]
-    const isVideo = m.type === 'video'
+  if (single) {
     return (
       <div
         className={cn(
           'mt-3 rounded-xl overflow-hidden cursor-pointer relative group',
           isVideo ? 'max-w-lg' : 'max-w-md'
         )}
-        onClick={() => onMediaClick(m)}
+        onClick={() => !showOverlay && onMediaClick(m)}
       >
         {isVideo ? (
           <div className="relative aspect-video bg-black/5">
             {m.thumbnailUrl ? (
-              <img src={m.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+              <img src={m.thumbnailUrl} alt="" className={cn('w-full h-full object-cover', showOverlay && 'blur-sm')} />
             ) : (
-              <video src={m.url} preload="metadata" className="w-full h-full object-cover" />
-            )}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition">
-                <Play size={24} className="text-white ml-0.5" fill="white" />
+              <div className="w-full h-full bg-gold-100 flex items-center justify-center">
+                <Video className="w-12 h-12 text-gold-300" />
               </div>
-            </div>
+            )}
+            {!showOverlay && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-black/40 flex items-center justify-center group-hover:bg-black/60 transition">
+                  <Play size={24} className="text-white ml-0.5" fill="white" />
+                </div>
+              </div>
+            )}
+            {showOverlay && <ProcessingOverlay status={m.processingStatus as any} />}
           </div>
         ) : (
           <img src={m.url} alt="" className="w-full max-h-96 object-cover rounded-xl" />
         )}
       </div>
     )
+  }
+
+  return (
+    <div
+      className={cn(
+        'relative cursor-pointer group overflow-hidden aspect-square',
+      )}
+      onClick={() => !showOverlay && onMediaClick(m)}
+    >
+      {isVideo && !m.thumbnailUrl ? (
+        <div className={cn('w-full h-full bg-gold-100 flex items-center justify-center', showOverlay && 'blur-sm')}>
+          <Video className="w-8 h-8 text-gold-300" />
+        </div>
+      ) : (
+        <img src={m.thumbnailUrl || m.url} alt="" className={cn('w-full h-full object-cover', showOverlay && 'blur-sm')} />
+      )}
+      {isVideo && (
+        <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 z-20">
+          <Play size={10} fill="white" /> 视频
+        </div>
+      )}
+      {showOverlay && <ProcessingOverlay status={m.processingStatus as any} />}
+    </div>
+  )
+}
+
+function MediaGrid({ media, onMediaClick, onUpdate }: { 
+  media: MomentMedia[]; 
+  onMediaClick: (m: MomentMedia) => void;
+  onUpdate?: (id: string, data: Partial<MomentMedia>) => void;
+}) {
+  const [localMedia, setLocalMedia] = useState(media)
+
+  useEffect(() => {
+    setLocalMedia(media)
+  }, [media])
+
+  const checkProcessingStatus = useCallback(async () => {
+    const processingVideos = localMedia.filter(m => m.type === 'video' && m.processingStatus === 'processing' && m.processingId)
+    
+    for (const m of processingVideos) {
+      try {
+        const status = await api.media.getProcessingStatus(m.processingId!)
+        if (status?.status === 'completed' || status?.status === 'failed') {
+          setLocalMedia(prev => prev.map(item => {
+            if (item.id === m.id) {
+              const updated = {
+                ...item,
+                processingStatus: status.status,
+                thumbnailUrl: status.result?.thumbnailUrl || item.thumbnailUrl,
+              }
+              onUpdate?.(m.id, updated)
+              return updated
+            }
+            return item
+          }))
+        }
+      } catch (e) {
+        // 静默失败，下次重试
+      }
+    }
+  }, [localMedia, onUpdate])
+
+  useEffect(() => {
+    const hasProcessing = localMedia.some(m => m.type === 'video' && m.processingStatus === 'processing')
+    if (!hasProcessing) return
+
+    checkProcessingStatus()
+    const interval = setInterval(checkProcessingStatus, 3000)
+    return () => clearInterval(interval)
+  }, [localMedia, checkProcessingStatus])
+
+  if (localMedia.length === 0) return null
+
+  const count = localMedia.length
+
+  if (count === 1) {
+    return <MediaItem m={localMedia[0]} onMediaClick={onMediaClick} single />
   }
 
   const gridClass = count === 2
@@ -106,31 +208,13 @@ function MediaGrid({ media, onMediaClick }: { media: MomentMedia[]; onMediaClick
 
   return (
     <div className={cn('mt-3 grid gap-1.5 rounded-xl overflow-hidden', gridClass)}>
-      {media.slice(0, 9).map((m, i) => {
-        const isVideo = m.type === 'video'
+      {localMedia.slice(0, 9).map((m, i) => {
         const isLast = i === 8 && count > 9
         return (
-          <div
-            key={m.id}
-            className={cn(
-              'relative cursor-pointer group overflow-hidden',
-              count === 3 && i === 0 ? 'row-span-2' : '',
-              'aspect-square'
-            )}
-            onClick={() => onMediaClick(m)}
-          >
-            {isVideo && !m.thumbnailUrl ? (
-              <video src={m.url} preload="metadata" muted className="w-full h-full object-cover" />
-            ) : (
-              <img src={m.thumbnailUrl || m.url} alt="" className="w-full h-full object-cover" />
-            )}
-            {isVideo && (
-              <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                <Play size={10} fill="white" /> 视频
-              </div>
-            )}
+          <div key={m.id} className={cn(count === 3 && i === 0 ? 'row-span-2' : '')}>
+            <MediaItem m={m} onMediaClick={onMediaClick} />
             {isLast && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
                 <span className="text-white text-xl font-bold">+{count - 9}</span>
               </div>
             )}
@@ -141,7 +225,11 @@ function MediaGrid({ media, onMediaClick }: { media: MomentMedia[]; onMediaClick
   )
 }
 
-function MomentCard({ moment, onDelete }: { moment: Moment; onDelete: (id: string) => void }) {
+function MomentCard({ moment, onDelete, onUpdateMedia }: { 
+  moment: Moment; 
+  onDelete: (id: string) => void;
+  onUpdateMedia?: (momentId: string, mediaId: string, data: Partial<MomentMedia>) => void;
+}) {
   const [showMenu, setShowMenu] = useState(false)
 
   return (
@@ -204,7 +292,11 @@ function MomentCard({ moment, onDelete }: { moment: Moment; onDelete: (id: strin
         </p>
       )}
 
-      <MediaGrid media={moment.media} onMediaClick={(m) => {}} />
+      <MediaGrid 
+        media={moment.media} 
+        onMediaClick={(m) => {}} 
+        onUpdate={(mediaId, data) => onUpdateMedia?.(moment.id, mediaId, data)}
+      />
 
       {moment.tags && moment.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
@@ -263,7 +355,7 @@ function DateDivider({ date, count }: DateDividerProps) {
 
 export default function Timeline() {
   const navigate = useNavigate()
-  const { moments, setMoments, addMoment, removeMoment } = useStore()
+  const { moments, setMoments, addMoment, removeMoment, updateMomentItem } = useStore()
   const [loading, setLoading] = useState(true)
   const [showCompose, setShowCompose] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
@@ -331,6 +423,16 @@ export default function Timeline() {
       await api.moments.delete(id)
       removeMoment(id)
     } catch {}
+  }
+
+  const handleUpdateMedia = (momentId: string, mediaId: string, data: Partial<MomentMedia>) => {
+    const moment = moments.find(m => m.id === momentId)
+    if (moment) {
+      updateMomentItem(momentId, {
+        ...moment,
+        media: moment.media.map(m => m.id === mediaId ? { ...m, ...data } : m)
+      })
+    }
   }
 
   const handleComposeSuccess = (moment: Moment) => {
@@ -410,7 +512,7 @@ export default function Timeline() {
                   {items.map((moment) => (
                     <div key={moment.id} className="relative">
                       <div className="absolute -left-6 top-6 w-3 h-3 rounded-full bg-gold-500 shadow-md shadow-gold-500/40 border-2 border-white" />
-                      <MomentCard moment={moment} onDelete={handleDelete} />
+                      <MomentCard moment={moment} onDelete={handleDelete} onUpdateMedia={handleUpdateMedia} />
                     </div>
                   ))}
                 </div>

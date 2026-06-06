@@ -36,6 +36,8 @@ export interface MomentMedia {
   dateTaken?: string | null
   description?: string
   location?: string
+  processingStatus?: 'pending' | 'processing' | 'completed' | 'failed'
+  processingId?: string
 }
 
 export interface Moment {

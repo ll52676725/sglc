@@ -166,10 +166,12 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       const momentMedia = all<{
         m_id: string; m_type: string; m_filename: string; m_url: string; m_thumbnail_url: string;
         m_date_taken: string | null; m_description: string; m_location: string;
+        m_processing_status: string; m_processing_id: string;
       }>(db, `
         SELECT media.id as m_id, media.type as m_type, media.filename as m_filename,
                media.url as m_url, media.thumbnail_url as m_thumbnail_url,
-               media.date_taken as m_date_taken, media.description as m_description, media.location as m_location
+               media.date_taken as m_date_taken, media.description as m_description, media.location as m_location,
+               media.processing_status as m_processing_status, media.processing_id as m_processing_id
         FROM moment_media mm JOIN media ON mm.media_id = media.id
         WHERE mm.moment_id = ? ORDER BY mm.sort_order
       `, [row.id])
@@ -193,6 +195,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           dateTaken: m.m_date_taken,
           description: m.m_description,
           location: m.m_location,
+          processingStatus: m.m_processing_status,
+          processingId: m.m_processing_id,
         })),
       }
     })
@@ -231,10 +235,12 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     const momentMedia = all<{
       m_id: string; m_type: string; m_filename: string; m_url: string; m_thumbnail_url: string;
       m_date_taken: string | null; m_description: string; m_location: string;
+      m_processing_status: string; m_processing_id: string;
     }>(db, `
       SELECT media.id as m_id, media.type as m_type, media.filename as m_filename,
              media.url as m_url, media.thumbnail_url as m_thumbnail_url,
-             media.date_taken as m_date_taken, media.description as m_description, media.location as m_location
+             media.date_taken as m_date_taken, media.description as m_description, media.location as m_location,
+             media.processing_status as m_processing_status, media.processing_id as m_processing_id
       FROM moment_media mm JOIN media ON mm.media_id = media.id
       WHERE mm.moment_id = ? ORDER BY mm.sort_order
     `, [id])
@@ -260,6 +266,8 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
           dateTaken: m.m_date_taken,
           description: m.m_description,
           location: m.m_location,
+          processingStatus: m.m_processing_status,
+          processingId: m.m_processing_id,
         })),
       },
     })
