@@ -131,31 +131,61 @@ export const VIDEO_FORMATS: Array<{ value: VideoFormat; label: string; descripti
   { value: 'mp4', label: 'MP4', description: '通用格式，H.264 编码' }
 ]
 
-function getMimeTypeForCodec(codec: VideoCodec, format: VideoFormat): string {
+function getMimeTypeVariants(codec: VideoCodec, format: VideoFormat): string[] {
   if (format === 'mp4') {
-    return 'video/mp4;codecs=avc1.42E01E'
+    return [
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4;codecs=avc1',
+      'video/mp4',
+    ]
   }
+  
   switch (codec) {
     case 'vp9':
-      return 'video/webm;codecs=vp9,opus'
+      return [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp9,opus',
+        'video/webm; codecs="vp9"',
+        'video/webm; codecs="vp9, opus"',
+      ]
     case 'vp8':
+      return [
+        'video/webm;codecs=vp8',
+        'video/webm;codecs=vp8,opus',
+        'video/webm; codecs="vp8"',
+        'video/webm; codecs="vp8, opus"',
+      ]
     default:
-      return 'video/webm;codecs=vp8,opus'
+      return [
+        'video/webm;codecs=vp8',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+      ]
   }
+}
+
+function getMimeTypeForCodec(codec: VideoCodec, format: VideoFormat): string {
+  return getMimeTypeVariants(codec, format)[0]
 }
 
 function getSupportedMimeTypes(): string[] {
   const types: string[] = []
-  const candidates = [
-    'video/mp4;codecs=avc1.42E01E',
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-    'video/mp4',
-  ]
-  for (const type of candidates) {
+  const allCandidates = new Set<string>()
+  
+  const codecs: VideoCodec[] = ['vp9', 'vp8', 'h264']
+  const formats: VideoFormat[] = ['webm', 'mp4']
+  
+  for (const codec of codecs) {
+    for (const format of formats) {
+      if (codec === 'h264' && format !== 'mp4') continue
+      if (codec !== 'h264' && format === 'mp4') continue
+      getMimeTypeVariants(codec, format).forEach(t => allCandidates.add(t))
+    }
+  }
+  allCandidates.add('video/webm')
+  allCandidates.add('video/mp4')
+  
+  for (const type of allCandidates) {
     if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
       types.push(type)
     }
@@ -196,6 +226,10 @@ export async function compressVideo(
   let maxHeight = options.maxHeight ?? preset.maxHeight
   let targetBitrate = options.targetBitrate ?? preset.targetBitrate
   let fps = options.fps ?? preset.fps
+
+  if (codec === 'vp9') {
+    targetBitrate = Math.max(targetBitrate, 1000000)
+  }
 
   if (typeof MediaRecorder === 'undefined' || !file.type.startsWith('video/')) {
     return file
@@ -265,21 +299,26 @@ export async function compressVideo(
       return file
     }
 
-    const preferredMimeType = getMimeTypeForCodec(codec, format)
+    const codecVariants = getMimeTypeVariants(codec, format)
     const fallbackMimeTypes = [
-      preferredMimeType,
-      'video/webm;codecs=vp8,opus',
+      ...codecVariants,
       'video/webm;codecs=vp8',
+      'video/webm;codecs=vp8,opus',
       'video/webm',
       'video/mp4;codecs=avc1.42E01E',
+      'video/mp4;codecs=avc1',
       'video/mp4',
     ]
     
     let selectedMimeType = ''
     for (const type of fallbackMimeTypes) {
-      if (MediaRecorder.isTypeSupported(type)) {
-        selectedMimeType = type
-        break
+      try {
+        if (MediaRecorder.isTypeSupported(type)) {
+          selectedMimeType = type
+          break
+        }
+      } catch (e) {
+        continue
       }
     }
 
@@ -291,12 +330,33 @@ export async function compressVideo(
     const stream = canvas.captureStream(fps)
 
     let mediaRecorder: MediaRecorder
-    try {
-      mediaRecorder = new MediaRecorder(stream, {
-        mimeType: selectedMimeType,
-        videoBitsPerSecond: targetBitrate,
-      })
-    } catch (e) {
+    let actualMimeType = selectedMimeType
+    
+    const recorderConfigs = [
+      { mimeType: selectedMimeType, videoBitsPerSecond: targetBitrate },
+      { mimeType: selectedMimeType, videoBitsPerSecond: Math.max(targetBitrate * 0.8, 500000) },
+      { mimeType: selectedMimeType },
+      ...fallbackMimeTypes.filter(t => t !== selectedMimeType).map(t => ({ mimeType: t, videoBitsPerSecond: targetBitrate })),
+      ...fallbackMimeTypes.filter(t => t !== selectedMimeType).map(t => ({ mimeType: t })),
+    ]
+
+    let recorderCreated = false
+    for (const config of recorderConfigs) {
+      try {
+        if (!MediaRecorder.isTypeSupported(config.mimeType)) {
+          continue
+        }
+        mediaRecorder = new MediaRecorder(stream, config)
+        actualMimeType = config.mimeType
+        recorderCreated = true
+        break
+      } catch (e) {
+        console.warn(`Failed to create MediaRecorder with config ${JSON.stringify(config)}:`, e)
+        continue
+      }
+    }
+
+    if (!recorderCreated) {
       cleanup()
       return file
     }
@@ -342,21 +402,21 @@ export async function compressVideo(
           return
         }
         
-        const blob = new Blob(chunks, { type: selectedMimeType })
+        const blob = new Blob(chunks, { type: actualMimeType })
         if (blob.size < 1000) {
           finish(file)
           return
         }
         
         let ext = '.webm'
-        if (selectedMimeType.includes('mp4')) {
+        if (actualMimeType.includes('mp4')) {
           ext = '.mp4'
-        } else if (selectedMimeType.includes('webm')) {
+        } else if (actualMimeType.includes('webm')) {
           ext = '.webm'
         }
         const baseName = file.name.replace(/\.[^/.]+$/, '')
         const newFileName = baseName + '_compressed' + ext
-        const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
+        const compressedFile = new File([blob], newFileName, { type: actualMimeType })
         
         finish(compressedFile)
       } catch (e) {
