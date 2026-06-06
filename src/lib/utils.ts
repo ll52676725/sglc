@@ -76,11 +76,12 @@ export async function compressVideo(
     onProgress,
   } = options
 
-  if (typeof MediaRecorder === 'undefined') {
+  if (typeof MediaRecorder === 'undefined' || !file.type.startsWith('video/')) {
     return file
   }
 
   let cleanup: (() => void) | null = null
+  let animationId: number | null = null
 
   try {
     const video = document.createElement('video')
@@ -88,29 +89,44 @@ export async function compressVideo(
     video.muted = true
     video.playsInline = true
     video.defaultMuted = true
+    video.volume = 0
 
     const url = URL.createObjectURL(file)
     video.src = url
 
     cleanup = () => {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId)
+        animationId = null
+      }
       try {
         video.pause()
         video.src = ''
         video.removeAttribute('src')
-        video.load()
+        try { video.load() } catch (e) {}
       } catch (e) {}
-      try {
-        URL.revokeObjectURL(url)
-      } catch (e) {}
+      try { URL.revokeObjectURL(url) } catch (e) {}
     }
 
     await new Promise<void>((res, rej) => {
-      video.onloadedmetadata = () => res()
-      video.onerror = () => rej(new Error('Failed to load video'))
+      const timer = setTimeout(() => rej(new Error('Video load timeout')), 15000)
+      video.onloadedmetadata = () => {
+        clearTimeout(timer)
+        res()
+      }
+      video.onerror = () => {
+        clearTimeout(timer)
+        rej(new Error('Failed to load video'))
+      }
     })
 
     let width = video.videoWidth
     let height = video.videoHeight
+
+    if (!width || !height) {
+      cleanup()
+      return file
+    }
 
     if (width > maxWidth || height > maxHeight) {
       const ratio = Math.min(maxWidth / width, maxHeight / height)
@@ -129,9 +145,7 @@ export async function compressVideo(
     }
 
     const mimeTypes = [
-      'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
-      'video/webm;codecs=vp9',
       'video/webm;codecs=vp8',
       'video/webm',
     ]
@@ -170,86 +184,102 @@ export async function compressVideo(
     }
 
     let resolved = false
-    const resultPromise = new Promise<File>((resolve) => {
-      mediaRecorder.onstop = () => {
-        if (resolved) return
-        resolved = true
-        
-        try {
-          if (chunks.length === 0) {
-            cleanup?.()
-            resolve(file)
-            return
-          }
-          
-          const blob = new Blob(chunks, { type: selectedMimeType })
-          if (blob.size < 1000) {
-            cleanup?.()
-            resolve(file)
-            return
-          }
-          
-          const ext = selectedMimeType.includes('webm') ? '.webm' : '.mp4'
-          const baseName = file.name.replace(/\.[^/.]+$/, '')
-          const newFileName = baseName + ext
-          const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
-          
-          cleanup?.()
-          resolve(compressedFile)
-        } catch (e) {
-          console.warn('Compression result error:', e)
-          cleanup?.()
-          resolve(file)
-        }
-      }
-    })
+    let finalFile = file
 
-    mediaRecorder.onerror = (e) => {
-      console.warn('MediaRecorder error:', e)
-      if (!resolved) {
-        resolved = true
-        try {
-          if (mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop()
-          }
-        } catch (e2) {}
-        cleanup?.()
+    const finish = (resultFile: File) => {
+      if (resolved) return
+      resolved = true
+      finalFile = resultFile
+      
+      try {
+        if (animationId !== null) {
+          cancelAnimationFrame(animationId)
+          animationId = null
+        }
+      } catch (e) {}
+      
+      try {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop()
+        }
+      } catch (e) {}
+      
+      stream.getTracks().forEach(track => track.stop())
+      cleanup?.()
+    }
+
+    mediaRecorder.onstop = () => {
+      if (resolved) return
+      
+      try {
+        if (chunks.length === 0) {
+          finish(file)
+          return
+        }
+        
+        const blob = new Blob(chunks, { type: selectedMimeType })
+        if (blob.size < 1000) {
+          finish(file)
+          return
+        }
+        
+        const ext = selectedMimeType.includes('webm') ? '.webm' : '.mp4'
+        const baseName = file.name.replace(/\.[^/.]+$/, '')
+        const newFileName = baseName + ext
+        const compressedFile = new File([blob], newFileName, { type: selectedMimeType })
+        
+        finish(compressedFile)
+      } catch (e) {
+        console.warn('Compression result error:', e)
+        finish(file)
       }
     }
 
-    video.playbackRate = 1.0
-    await video.play()
+    mediaRecorder.onerror = (e) => {
+      console.warn('MediaRecorder error:', e)
+      finish(file)
+    }
 
-    mediaRecorder.start(500)
+    video.playbackRate = 1.0
+    
+    try {
+      await video.play()
+    } catch (e) {
+      console.warn('Video play failed:', e)
+      cleanup()
+      return file
+    }
+
+    try {
+      mediaRecorder.start(250)
+    } catch (e) {
+      console.warn('MediaRecorder start failed:', e)
+      cleanup()
+      return file
+    }
 
     const duration = video.duration || 0
-    let animationId: number
     let lastProgressTime = 0
+    let lastDrawTime = 0
+    const frameInterval = 1000 / fps
 
-    const drawFrame = () => {
+    const drawFrame = (timestamp: number) => {
       if (resolved) return
 
-      if (video.ended || video.paused) {
+      if (video.ended || video.paused || video.readyState < 2) {
         if (onProgress && duration > 0) {
           onProgress(100)
         }
-        try {
-          if (mediaRecorder.state === 'recording') {
-            setTimeout(() => {
-              try {
-                if (mediaRecorder.state === 'recording') {
-                  mediaRecorder.stop()
-                }
-              } catch (e) {}
-            }, 300)
-          }
-        } catch (e) {}
+        setTimeout(() => finish(finalFile), 600)
         return
       }
 
-      try {
-        ctx.drawImage(video, 0, 0, width, height)
-      } catch (e) {}
+      if (timestamp - lastDrawTime >= frameInterval) {
+        try {
+          ctx.drawImage(video, 0, 0, width, height)
+        } catch (e) {}
+        lastDrawTime = timestamp
+      }
 
       const currentTime = video.currentTime
       if (onProgress && duration > 0 && currentTime - lastProgressTime > 0.1) {
@@ -265,32 +295,33 @@ export async function compressVideo(
       if (onProgress && duration > 0) {
         onProgress(100)
       }
-      setTimeout(() => {
-        try {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop()
-          }
-        } catch (e) {}
-      }, 500)
+      setTimeout(() => finish(finalFile), 800)
+    }
+
+    video.onerror = () => {
+      finish(file)
     }
 
     animationId = requestAnimationFrame(drawFrame)
 
-    const timeoutPromise = new Promise<File>((_, reject) => {
-      setTimeout(() => reject(new Error('Compression timeout')), Math.max(60000, (duration || 10) * 2000))
+    const maxDuration = Math.max(120000, (duration || 30) * 3000)
+    setTimeout(() => {
+      if (!resolved) {
+        console.warn('Compression timed out')
+        finish(file)
+      }
+    }, maxDuration)
+
+    await new Promise<File>((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (resolved) {
+          clearInterval(checkInterval)
+          resolve(finalFile)
+        }
+      }, 100)
     })
 
-    return await Promise.race([resultPromise, timeoutPromise.catch(() => {
-      resolved = true
-      try {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop()
-        }
-      } catch (e) {}
-      cancelAnimationFrame(animationId)
-      cleanup?.()
-      return file
-    })])
+    return finalFile
   } catch (err) {
     console.warn('Video compression failed:', err)
     cleanup?.()

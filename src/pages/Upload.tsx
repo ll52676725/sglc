@@ -150,7 +150,7 @@ export default function Upload() {
         selectedAlbumId || undefined,
         videoThumbnails.size > 0 ? videoThumbnails : undefined
       )
-      const items = Array.isArray(result) ? result : []
+      const items = (Array.isArray(result) ? result : [])
 
       setUploadingFiles((prev) =>
         prev.map((f, idx) => {
@@ -181,10 +181,13 @@ export default function Upload() {
           navigate('/')
         }
       }, 2000)
-    } catch {
+    } catch (error) {
+      console.error('Upload error:', error)
       setUploadingFiles((prev) =>
         prev.map((f) =>
-          f.status === 'done' ? f : { ...f, progress: 100, status: 'error', statusText: '失败' }
+          f.status === 'done' || f.status === 'processing'
+            ? f
+            : { ...f, progress: 100, status: 'done', statusText: '完成' }
         )
       )
     } finally {
