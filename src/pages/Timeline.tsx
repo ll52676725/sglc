@@ -18,6 +18,12 @@ import {
   PenLine,
   Loader2,
   AlertCircle,
+  Camera,
+  Upload,
+  MessageSquare,
+  ArrowRight,
+  Sparkles,
+  FolderTree,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
@@ -26,6 +32,7 @@ import { MOOD_OPTIONS, WEATHER_OPTIONS } from '@/types'
 import { cn } from '@/lib/utils'
 import ComposeMoment from './ComposeMoment'
 import AudioPlayer from '@/components/AudioPlayer'
+import UploadModal from './UploadModal'
 
 function formatRelativeTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -394,22 +401,73 @@ function DateDivider({ date, count }: DateDividerProps) {
   )
 }
 
-export default function Timeline() {
+function QuickActionCard({ 
+  icon: Icon, 
+  title, 
+  description, 
+  color, 
+  onClick,
+  iconBg 
+}: { 
+  icon: any
+  title: string
+  description: string
+  color: string
+  onClick: () => void
+  iconBg: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        "bg-gradient-to-br border border-gold-200/50",
+        color
+      )}
+    >
+      <div className={cn(
+        "w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
+        iconBg
+      )}>
+        <Icon className="w-7 h-7 text-white" />
+      </div>
+      <h3 className="font-display text-xl text-ink mb-1">{title}</h3>
+      <p className="text-sm text-ink/60">{description}</p>
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <ArrowRight className="w-5 h-5 text-ink/30" />
+      </div>
+    </button>
+  )
+}
+
+export default function MemoryCollection() {
   const navigate = useNavigate()
-  const { moments, setMoments, addMoment, removeMoment, updateMomentItem } = useStore()
+  const { moments, setMoments, addMoment, removeMoment, updateMomentItem, media, albums } = useStore()
   const [loading, setLoading] = useState(true)
   const [showCompose, setShowCompose] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [stats, setStats] = useState<{ photos: number; moments: number; albums: number } | null>(null)
   const PAGE_SIZE = 20
 
   useEffect(() => {
     setLoading(true)
-    api.moments.list({ page: '1', limit: String(PAGE_SIZE) })
-      .then((data) => {
-        setMoments(data.items || [])
-        setTotal(data.total || 0)
+    Promise.all([
+      api.moments.list({ page: '1', limit: String(PAGE_SIZE) }),
+      api.stats.get(),
+    ])
+      .then(([momentsData, statsData]) => {
+        setMoments(momentsData.items || [])
+        setTotal(momentsData.total || 0)
+        if (statsData) {
+          setStats({
+            photos: (statsData.totalPhotos || 0) + (statsData.totalVideos || 0),
+            moments: momentsData.total || 0,
+            albums: statsData.totalAlbums || 0,
+          })
+        }
       })
       .finally(() => setLoading(false))
   }, [setMoments])
@@ -479,6 +537,13 @@ export default function Timeline() {
   const handleComposeSuccess = (moment: Moment) => {
     addMoment(moment)
     setShowCompose(false)
+    if (stats) {
+      setStats(prev => prev ? { ...prev, moments: prev.moments + 1 } : null)
+    }
+  }
+
+  const handleUploadSuccess = () => {
+    setShowUpload(false)
   }
 
   if (loading) {
@@ -490,60 +555,136 @@ export default function Timeline() {
   }
 
   return (
-    <div className="min-h-screen fade-in max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-3xl golden-underline inline-block">时光动态</h1>
-        <button
-          onClick={() => setShowCompose(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl shadow-md shadow-gold-500/30 hover:shadow-lg hover:shadow-gold-500/40 transition-all active:scale-95"
-        >
-          <Plus size={18} />
-          记录此刻
-        </button>
+    <div className="min-h-screen fade-in">
+      <div className="mb-8">
+        <h1 className="font-display text-3xl golden-underline inline-block mb-2">📸 记忆收集</h1>
+        <p className="text-ink/60">记录生活中的每一个珍贵时刻</p>
       </div>
 
-      {years.length > 0 && (
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <button
-            onClick={() => setSelectedYear(null)}
-            className={cn(
-              'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-              selectedYear === null ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
-            )}
-          >
-            全部
-          </button>
-          {years.map((year) => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year)}
-              className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-                selectedYear === year ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
-              )}
-            >
-              {year}
-            </button>
-          ))}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-ink/50 mb-1">照片视频</p>
+                <p className="text-3xl font-display text-ink">{stats.photos}</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                <Image className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-ink/50 mb-1">时光动态</p>
+                <p className="text-3xl font-display text-ink">{stats.moments}</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center">
+                <PenLine className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-ink/50 mb-1">相册数量</p>
+                <p className="text-3xl font-display text-ink">{stats.albums}</p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                <FolderTree className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <QuickActionCard
+          icon={PenLine}
+          title="发布动态"
+          description="记录此刻的心情与故事"
+          color="from-rose-50 to-pink-50"
+          iconBg="bg-gradient-to-br from-rose-500 to-pink-600"
+          onClick={() => setShowCompose(true)}
+        />
+        <QuickActionCard
+          icon={Upload}
+          title="上传媒体"
+          description="批量上传照片和视频"
+          color="from-blue-50 to-sky-50"
+          iconBg="bg-gradient-to-br from-blue-500 to-sky-600"
+          onClick={() => setShowUpload(true)}
+        />
+        <QuickActionCard
+          icon={Sparkles}
+          title="智能整理"
+          description="AI分类整理你的记忆"
+          color="from-purple-50 to-violet-50"
+          iconBg="bg-gradient-to-br from-purple-500 to-violet-600"
+          onClick={() => navigate('/organize')}
+        />
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-display text-xl text-ink">⏱️ 最近动态</h2>
+        {years.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setSelectedYear(null)}
+              className={cn(
+                'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                selectedYear === null ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
+              )}
+            >
+              全部
+            </button>
+            {years.map((year) => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                className={cn(
+                  'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                  selectedYear === year ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
+                )}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {filteredMoments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-ink/60">
-          <PenLine size={64} className="mb-4 text-gold-500/50" />
-          <p className="text-lg mb-2">还没有记录</p>
-          <p className="text-sm mb-6 text-ink/40">记录你的心情、故事和日常，为未来的传记留下素材</p>
-          <button
-            onClick={() => setShowCompose(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
-          >
-            <Plus size={18} />
-            写下第一条动态
-          </button>
+        <div className="flex flex-col items-center justify-center py-24 text-ink/60 bg-gradient-to-br from-gold-50/50 to-white/50 rounded-2xl border border-gold-200/30">
+          <div className="w-20 h-20 rounded-full bg-gold-100 flex items-center justify-center mb-6">
+            <PenLine size={40} className="text-gold-400" />
+          </div>
+          <p className="text-xl font-medium mb-2">还没有记录</p>
+          <p className="text-sm mb-8 text-ink/40 max-w-md text-center">
+            每一个平凡的日子，都值得被记住。<br />
+            发布你的第一条动态，开启时光簿之旅
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowCompose(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
+            >
+              <Plus size={18} />
+              写下第一条动态
+            </button>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition-all"
+            >
+              <Upload size={18} />
+              上传照片
+            </button>
+          </div>
         </div>
       ) : (
         <>
-          <div className="relative pl-6">
+          <div className="relative pl-6 max-w-3xl mx-auto">
             <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-gold-500/40 via-gold-400/20 to-transparent" />
 
             {groupedByDate.map(({ dateKey, items }) => (
@@ -578,6 +719,13 @@ export default function Timeline() {
         <ComposeMoment
           onClose={() => setShowCompose(false)}
           onSuccess={handleComposeSuccess}
+        />
+      )}
+
+      {showUpload && (
+        <UploadModal
+          onClose={() => setShowUpload(false)}
+          onSuccess={handleUploadSuccess}
         />
       )}
     </div>

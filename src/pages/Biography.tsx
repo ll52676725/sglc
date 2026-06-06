@@ -242,7 +242,35 @@ export default function BiographyPage() {
   return (
     <div className="flex min-h-screen -m-8">
       <aside className="w-80 flex-shrink-0 bg-parchment/40 border-r border-gold-200 overflow-y-auto p-6 sticky top-0 h-screen">
-        <h1 className="font-display text-2xl text-ink golden-underline inline-block mb-6">传记工坊</h1>
+        <div className="mb-6">
+          <h1 className="font-display text-2xl text-ink golden-underline inline-block mb-2">📖 传记工坊</h1>
+          <p className="text-sm text-ink/60">将美好的时光编织成动人的故事</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-4 mb-6 border border-gold-200/50">
+          <h3 className="font-medium text-ink mb-3 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-gold-500" />
+            四步生成传记
+          </h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-5 h-5 rounded-full bg-gold-500 text-white flex items-center justify-center flex-shrink-0 text-[10px] font-bold">1</div>
+              <span className="text-ink/70">在「记忆收集」上传照片、发布动态</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-5 h-5 rounded-full bg-gold-500 text-white flex items-center justify-center flex-shrink-0 text-[10px] font-bold">2</div>
+              <span className="text-ink/70">在「智能整理」用 AI 分类整理</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-5 h-5 rounded-full bg-gold-200 text-gold-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">3</div>
+              <span className="text-ink/70">选择时间范围和风格</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-5 h-5 rounded-full bg-gold-200 text-gold-700 flex items-center justify-center flex-shrink-0 text-[10px] font-bold">4</div>
+              <span className="text-ink/70">点击「开始创作」生成传记</span>
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-4 mb-8">
           <div className="space-y-2">
