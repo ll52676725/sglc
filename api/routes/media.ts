@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { v4 } from 'uuid'
 import { getDb, all, get, run } from '../db.js'
+import { processVideo, processVideoAsync, getProcessingStatus, isFfmpegAvailable } from '../lib/video-processor.js'
 
 const router = Router()
 
@@ -42,6 +43,7 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
     }
 
     const mediaFiles = files.filter(f => !f.originalname.startsWith('thumb_'))
+    const ffmpegAvailable = isFfmpegAvailable()
 
     for (const file of mediaFiles) {
       const id = v4()
@@ -54,8 +56,56 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
         thumbnailUrl = thumbnailMap.get(file.originalname)!
       }
 
-      run(db, `INSERT INTO media (id, type, filename, url, thumbnail_url) VALUES (?, ?, ?, ?, ?)`, [
-        id, type, file.originalname, url, thumbnailUrl,
+      let processingStatus = 'completed'
+      let processingId = ''
+
+      if (isVideo && ffmpegAvailable) {
+        processingStatus = 'processing'
+        processingId = await processVideoAsync(file.path, file.filename)
+
+        setTimeout(async () => {
+          const status = getProcessingStatus(processingId)
+          let checkCount = 0
+          const maxChecks = 600
+
+          const checkInterval = setInterval(async () => {
+            checkCount++
+            const currentStatus = getProcessingStatus(processingId)
+            
+            if (currentStatus?.status === 'completed' || currentStatus?.status === 'failed' || checkCount >= maxChecks) {
+              clearInterval(checkInterval)
+              
+              if (currentStatus?.result) {
+                const result = currentStatus.result
+                const dbUpdate = await getDb()
+                run(dbUpdate, `
+                  UPDATE media 
+                  SET thumbnail_url = ?, 
+                      hls_master_url = ?, 
+                      video_qualities = ?,
+                      duration = ?,
+                      width = ?,
+                      height = ?,
+                      processing_status = 'completed',
+                      updated_at = datetime('now')
+                  WHERE id = ?
+                `, [
+                  result.thumbnailUrl || thumbnailUrl,
+                  result.hlsMasterUrl || '',
+                  JSON.stringify(result.qualities || []),
+                  result.duration || 0,
+                  result.width || 0,
+                  result.height || 0,
+                  id,
+                ])
+              }
+            }
+          }, 2000)
+        }, 100)
+      }
+
+      run(db, `INSERT INTO media (id, type, filename, url, thumbnail_url, processing_status, processing_id) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        id, type, file.originalname, url, thumbnailUrl, processingStatus, processingId,
       ])
 
       if (albumId) {
@@ -75,6 +125,8 @@ router.post('/upload', upload.array('files', 50), async (req: Request, res: Resp
         location: '',
         description: '',
         albumIds: albumId ? [albumId] : [],
+        processingStatus,
+        processingId,
       })
     }
 
@@ -128,6 +180,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       date_taken: string | null
       location: string
       description: string
+      duration: number
+      width: number
+      height: number
+      hls_master_url: string
+      video_qualities: string
+      processing_status: string
+      processing_id: string
       created_at: string
       updated_at: string
     }>(db, `SELECT m.* FROM media m ${whereClause} ORDER BY m.date_taken DESC NULLS LAST, m.created_at DESC LIMIT ? OFFSET ?`, [
@@ -143,6 +202,13 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       dateTaken: row.date_taken,
       location: row.location,
       description: row.description,
+      duration: row.duration,
+      width: row.width,
+      height: row.height,
+      hlsMasterUrl: row.hls_master_url,
+      videoQualities: row.video_qualities ? JSON.parse(row.video_qualities) : [],
+      processingStatus: row.processing_status,
+      processingId: row.processing_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }))
@@ -185,6 +251,13 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       date_taken: string | null
       location: string
       description: string
+      duration: number
+      width: number
+      height: number
+      hls_master_url: string
+      video_qualities: string
+      processing_status: string
+      processing_id: string
       created_at: string
       updated_at: string
     }>(db, `SELECT * FROM media WHERE id = ?`, [id])
@@ -209,12 +282,38 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
         dateTaken: row.date_taken,
         location: row.location,
         description: row.description,
+        duration: row.duration,
+        width: row.width,
+        height: row.height,
+        hlsMasterUrl: row.hls_master_url,
+        videoQualities: row.video_qualities ? JSON.parse(row.video_qualities) : [],
+        processingStatus: row.processing_status,
+        processingId: row.processing_id,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         people,
         tags,
         albumIds: albums.map(a => a.album_id),
       },
+    })
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message })
+  }
+})
+
+router.get('/processing/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const status = getProcessingStatus(id)
+    
+    if (!status) {
+      res.status(404).json({ success: false, error: 'Processing task not found' })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: status,
     })
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message })

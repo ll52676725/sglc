@@ -1,17 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CloudUpload, Check, FileImage, FileVideo, FolderOpen } from 'lucide-react'
+import { CloudUpload, Check, FileImage, FileVideo, FolderOpen, Zap, ArrowRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { cn } from '@/lib/utils'
-import { generateVideoThumbnail } from '@/lib/utils'
+import { generateVideoThumbnail, compressVideo, formatFileSize } from '@/lib/utils'
 import type { Album } from '@/types'
 import { CATEGORY_LABELS } from '@/types'
 
 interface UploadingFile {
   file: File
+  originalSize: number
+  compressedSize?: number
   progress: number
-  done: boolean
+  status: 'pending' | 'compressing' | 'uploading' | 'processing' | 'done' | 'error'
+  statusText: string
 }
 
 export default function Upload() {
@@ -22,6 +25,7 @@ export default function Upload() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([])
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('')
+  const [enableCompression, setEnableCompression] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -36,52 +40,128 @@ export default function Upload() {
 
     const initial: UploadingFile[] = fileArray.map((file) => ({
       file,
+      originalSize: file.size,
       progress: 0,
-      done: false,
+      status: 'pending',
+      statusText: '等待中',
     }))
     setUploadingFiles(initial)
     setUploading(true)
 
-    for (let i = 0; i < initial.length; i++) {
-      setUploadingFiles((prev) =>
-        prev.map((f, idx) => (idx === i ? { ...f, progress: 30 } : f))
-      )
-    }
-
     try {
+      const processedFiles: File[] = []
       const videoThumbnails = new Map<string, Blob>()
-      const videoFiles = fileArray.filter(f => f.type.startsWith('video/'))
-      
-      if (videoFiles.length > 0) {
-        setUploadingFiles((prev) =>
-          prev.map((f) => f.file.type.startsWith('video/') ? { ...f, progress: 50 } : f)
-        )
-        
-        const thumbnailPromises = videoFiles.map(async (vf) => {
+
+      for (let i = 0; i < initial.length; i++) {
+        const item = initial[i]
+        const file = item.file
+
+        if (file.type.startsWith('video/')) {
+          setUploadingFiles((prev) =>
+            prev.map((f, idx) =>
+              idx === i
+                ? { ...f, status: 'compressing', statusText: '压缩中...' }
+                : f
+            )
+          )
+
           try {
-            const blob = await generateVideoThumbnail(vf)
-            videoThumbnails.set(vf.name, blob)
-          } catch {}
-        })
-        await Promise.all(thumbnailPromises)
+            const thumbnailBlob = await generateVideoThumbnail(file)
+            videoThumbnails.set(file.name, thumbnailBlob)
+
+            if (enableCompression) {
+              const compressedFile = await compressVideo(file, {
+                maxWidth: 1280,
+                maxHeight: 720,
+                targetBitrate: 2500000,
+                onProgress: (percent) => {
+                  setUploadingFiles((prev) =>
+                    prev.map((f, idx) =>
+                      idx === i
+                        ? { ...f, progress: Math.floor(percent * 0.4) }
+                        : f
+                    )
+                  )
+                },
+              })
+              processedFiles.push(compressedFile)
+              setUploadingFiles((prev) =>
+                prev.map((f, idx) =>
+                  idx === i
+                    ? {
+                        ...f,
+                        compressedSize: compressedFile.size,
+                        progress: 40,
+                        status: 'uploading',
+                        statusText: '上传中...',
+                      }
+                    : f
+                )
+              )
+            } else {
+              processedFiles.push(file)
+              setUploadingFiles((prev) =>
+                prev.map((f, idx) =>
+                  idx === i
+                    ? { ...f, progress: 40, status: 'uploading', statusText: '上传中...' }
+                    : f
+                )
+              )
+            }
+          } catch {
+            processedFiles.push(file)
+            setUploadingFiles((prev) =>
+              prev.map((f, idx) =>
+                idx === i
+                  ? { ...f, progress: 40, status: 'uploading', statusText: '上传中...' }
+                  : f
+              )
+            )
+          }
+        } else {
+          processedFiles.push(file)
+          setUploadingFiles((prev) =>
+            prev.map((f, idx) =>
+              idx === i
+                ? { ...f, progress: 40, status: 'uploading', statusText: '上传中...' }
+                : f
+            )
+          )
+        }
       }
 
       setUploadingFiles((prev) =>
-        prev.map((f) => ({ ...f, progress: 70 }))
+        prev.map((f) => ({ ...f, progress: 70, statusText: '上传中...' }))
       )
 
-      const result = await api.media.upload(fileArray, selectedAlbumId || undefined, videoThumbnails.size > 0 ? videoThumbnails : undefined)
+      const result = await api.media.upload(
+        processedFiles,
+        selectedAlbumId || undefined,
+        videoThumbnails.size > 0 ? videoThumbnails : undefined
+      )
       const items = Array.isArray(result) ? result : []
 
       setUploadingFiles((prev) =>
-        prev.map((f) => ({ ...f, progress: 100, done: true }))
+        prev.map((f, idx) => {
+          const item = items[idx]
+          const isVideo = f.file.type.startsWith('video/')
+          if (isVideo && item?.processingStatus === 'processing') {
+            return {
+              ...f,
+              progress: 85,
+              status: 'processing',
+              statusText: '转码中...',
+            }
+          }
+          return { ...f, progress: 100, status: 'done', statusText: '完成' }
+        })
       )
 
       if (items.length > 0) {
         addMedia(items)
       }
 
-      setUploadedUrls(items.map((m: any) => m.url || ''))
+      setUploadedUrls(items.map((m: any) => m.thumbnailUrl || m.url || ''))
 
       setTimeout(() => {
         if (selectedAlbumId) {
@@ -89,10 +169,12 @@ export default function Upload() {
         } else {
           navigate('/')
         }
-      }, 1500)
+      }, 2000)
     } catch {
       setUploadingFiles((prev) =>
-        prev.map((f) => ({ ...f, progress: 100, done: true }))
+        prev.map((f) =>
+          f.status === 'done' ? f : { ...f, progress: 100, status: 'error', statusText: '失败' }
+        )
       )
     } finally {
       setUploading(false)
@@ -155,25 +237,42 @@ export default function Upload() {
         />
       </div>
 
-      {albums.length > 0 && (
-        <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-6">
+        {albums.length > 0 && (
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
+              <FolderOpen size={14} /> 归入相册（可选）
+            </label>
+            <select
+              value={selectedAlbumId}
+              onChange={(e) => setSelectedAlbumId(e.target.value)}
+              className="w-full md:w-80 border border-gold-300 rounded-lg px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink"
+            >
+              <option value="">不选择相册，仅上传到时间线</option>
+              {albums.map((album) => (
+                <option key={album.id} value={album.id}>
+                  {album.name} ({CATEGORY_LABELS[album.category]} - {album.mediaCount} 项)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
-            <FolderOpen size={14} /> 归入相册（可选）
+            <Zap size={14} /> 视频智能压缩
           </label>
-          <select
-            value={selectedAlbumId}
-            onChange={(e) => setSelectedAlbumId(e.target.value)}
-            className="w-full md:w-80 border border-gold-300 rounded-lg px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink"
-          >
-            <option value="">不选择相册，仅上传到时间线</option>
-            {albums.map((album) => (
-              <option key={album.id} value={album.id}>
-                {album.name} ({CATEGORY_LABELS[album.category]} - {album.mediaCount} 项)
-              </option>
-            ))}
-          </select>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableCompression}
+              onChange={(e) => setEnableCompression(e.target.checked)}
+              className="w-4 h-4 text-gold-500 rounded border-gold-300 focus:ring-gold-500"
+            />
+            <span className="text-sm text-ink/70">上传前自动压缩视频（推荐）</span>
+          </label>
         </div>
-      )}
+      </div>
 
       {uploadingFiles.length > 0 && (
         <div className="mt-8 space-y-3">
@@ -181,20 +280,55 @@ export default function Upload() {
           {uploadingFiles.map((uf, idx) => (
             <div key={idx} className="flex items-center gap-3 bg-white/60 rounded-xl p-3">
               {uf.file.type.startsWith('video/') ? (
-                <FileVideo className="w-5 h-5 text-gold-500 flex-shrink-0" />
+                <FileVideo className={cn(
+                  'w-5 h-5 flex-shrink-0',
+                  uf.status === 'error' ? 'text-red-500' : 'text-gold-500'
+                )} />
               ) : (
-                <FileImage className="w-5 h-5 text-gold-500 flex-shrink-0" />
+                <FileImage className={cn(
+                  'w-5 h-5 flex-shrink-0',
+                  uf.status === 'error' ? 'text-red-500' : 'text-gold-500'
+                )} />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-ink truncate">{uf.file.name}</p>
-                <div className="mt-1 h-1.5 bg-gold-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gold-500 rounded-full transition-all duration-500"
-                    style={{ width: `${uf.progress}%` }}
-                  />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-ink truncate">{uf.file.name}</p>
+                  <span className={cn(
+                    'text-xs flex-shrink-0 px-2 py-0.5 rounded-full',
+                    uf.status === 'done' ? 'bg-green-100 text-green-700' :
+                    uf.status === 'error' ? 'bg-red-100 text-red-700' :
+                    uf.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    'bg-gold-100 text-gold-700'
+                  )}>
+                    {uf.statusText}
+                  </span>
                 </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 h-1.5 bg-gold-100 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500',
+                        uf.status === 'error' ? 'bg-red-500' : 'bg-gold-500'
+                      )}
+                      style={{ width: `${uf.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-ink/40 w-12 text-right">
+                    {uf.progress}%
+                  </span>
+                </div>
+                {uf.file.type.startsWith('video/') && uf.compressedSize && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-ink/50">
+                    <span>{formatFileSize(uf.originalSize)}</span>
+                    <ArrowRight size={10} />
+                    <span className="text-green-600 font-medium">{formatFileSize(uf.compressedSize)}</span>
+                    <span className="text-green-600">
+                      节省 {Math.round((1 - uf.compressedSize / uf.originalSize) * 100)}%
+                    </span>
+                  </div>
+                )}
               </div>
-              {uf.done && <Check className="w-5 h-5 text-green-500 flex-shrink-0" />}
+              {uf.status === 'done' && <Check className="w-5 h-5 text-green-500 flex-shrink-0" />}
             </div>
           ))}
         </div>

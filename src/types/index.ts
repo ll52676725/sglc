@@ -1,3 +1,9 @@
+export interface VideoQuality {
+  name: string
+  url: string
+  resolution: number
+}
+
 export interface MediaItem {
   id: string
   type: 'photo' | 'video'
@@ -10,6 +16,13 @@ export interface MediaItem {
   people: string[]
   tags: string[]
   albumIds: string[]
+  duration?: number
+  width?: number
+  height?: number
+  hlsMasterUrl?: string
+  videoQualities?: VideoQuality[]
+  processingStatus?: 'pending' | 'processing' | 'completed' | 'failed'
+  processingId?: string
   createdAt: string
   updatedAt: string
 }

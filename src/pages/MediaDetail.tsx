@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Save, Trash2, MapPin, Calendar, Tag, Users, FolderOpen, Check, Loader2, Clock } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useStore } from '@/store/useStore'
 import { CATEGORY_LABELS } from '@/types'
 import type { MediaItem, Album } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatFileSize } from '@/lib/utils'
+import VideoPlayer from '@/components/VideoPlayer'
 
 export default function MediaDetail() {
   const { id } = useParams<{ id: string }>()
@@ -139,11 +140,23 @@ export default function MediaDetail() {
         )}
 
         {item.type === 'video' ? (
-          <video
-            src={item.url}
-            controls
-            className="max-h-[80vh] max-w-[70vw] rounded-lg shadow-2xl"
-          />
+          <div className="relative">
+            {item.processingStatus === 'processing' ? (
+              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-12 max-w-[70vw]">
+                <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
+                <p className="text-white/80 text-lg mb-2">视频处理中...</p>
+                <p className="text-white/50 text-sm">转码完成后即可播放</p>
+              </div>
+            ) : (
+              <VideoPlayer
+                src={item.url}
+                hlsMasterUrl={item.hlsMasterUrl}
+                qualities={item.videoQualities}
+                poster={item.thumbnailUrl}
+                className="max-h-[80vh] max-w-[70vw] shadow-2xl"
+              />
+            )}
+          </div>
         ) : (
           <img
             src={item.url}

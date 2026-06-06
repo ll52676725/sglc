@@ -29,6 +29,7 @@ export const api = {
       return request<{ items: any[]; total: number; page: number; pageSize: number }>(`/media${qs}`)
     },
     get: (id: string) => request<any>(`/media/${id}`),
+    getProcessingStatus: (processingId: string) => request<any>(`/media/processing/${processingId}`),
     update: (id: string, data: any) =>
       request<any>(`/media/${id}`, {
         method: 'PUT',

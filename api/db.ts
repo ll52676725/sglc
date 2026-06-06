@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS media (
   date_taken TEXT,
   location TEXT DEFAULT '',
   description TEXT DEFAULT '',
+  duration REAL DEFAULT 0,
+  width INTEGER DEFAULT 0,
+  height INTEGER DEFAULT 0,
+  hls_master_url TEXT DEFAULT '',
+  video_qualities TEXT DEFAULT '[]',
+  processing_status TEXT DEFAULT 'completed',
+  processing_id TEXT DEFAULT '',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -113,10 +120,29 @@ export function saveDb() {
 
 async function runMigrations(database: Database) {
   try {
-    const columns = all(database, `PRAGMA table_info(biographies)`)
-    const hasWriterId = columns.some((col: any) => col.name === 'writer_id')
+    const bioColumns = all(database, `PRAGMA table_info(biographies)`)
+    const hasWriterId = bioColumns.some((col: any) => col.name === 'writer_id')
     if (!hasWriterId) {
       run(database, `ALTER TABLE biographies ADD COLUMN writer_id TEXT`)
+    }
+
+    const mediaColumns = all(database, `PRAGMA table_info(media)`)
+    const mediaColumnNames = mediaColumns.map((col: any) => col.name)
+    
+    const newColumns = [
+      { name: 'duration', type: 'REAL DEFAULT 0' },
+      { name: 'width', type: 'INTEGER DEFAULT 0' },
+      { name: 'height', type: 'INTEGER DEFAULT 0' },
+      { name: 'hls_master_url', type: "TEXT DEFAULT ''" },
+      { name: 'video_qualities', type: "TEXT DEFAULT '[]'" },
+      { name: 'processing_status', type: "TEXT DEFAULT 'completed'" },
+      { name: 'processing_id', type: "TEXT DEFAULT ''" },
+    ]
+
+    for (const col of newColumns) {
+      if (!mediaColumnNames.includes(col.name)) {
+        run(database, `ALTER TABLE media ADD COLUMN ${col.name} ${col.type}`)
+      }
     }
   } catch (e) {
     console.error('Migration failed:', e)
