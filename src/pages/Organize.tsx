@@ -631,12 +631,34 @@ export default function Organize() {
 
   return (
     <div className="min-h-screen fade-in">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="font-display text-2xl sm:text-3xl text-text-primary theme-accent-underline inline-block mb-2">🗂️ 智能整理</h1>
-        <p className="text-text-secondary text-sm sm:text-base">AI 帮您归类整理，让记忆井井有条</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-text-primary inline-block mb-2">🗂️ 智能整理</h1>
+          <p className="text-text-secondary text-sm sm:text-base">AI 帮您归类整理，让记忆井井有条</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeTab === 'ai' && (
+            <button
+              onClick={() => loadAiData(true)}
+              disabled={refreshing || aiLoading}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-surface border border-border rounded-lg text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
+              <span className="hidden sm:inline">重新分析</span>
+            </button>
+          )}
+          <button
+            onClick={() => setShowCreateAlbum(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 shadow-md shadow-primary-500/20 hover:shadow-lg hover:shadow-primary-500/30 transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">创建相册</span>
+            <span className="sm:hidden">创建</span>
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 sm:gap-2 mb-6 sm:mb-8 bg-surface p-1.5 rounded-xl border border-border w-fit">
+      <div className="inline-flex flex-wrap bg-surface p-1 rounded-xl border border-border mb-6 sm:mb-8 gap-1">
         {TABS.map((tab) => {
           const Icon = tab.icon
           return (
@@ -644,14 +666,14 @@ export default function Organize() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all',
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                 activeTab === tab.key
-                  ? 'bg-primary-500 text-white shadow-md'
+                  ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
                   : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
               )}
             >
               <Icon size={16} />
-              <span className="hidden xs:inline">{tab.label}</span>
+              {tab.label}
             </button>
           )
         })}

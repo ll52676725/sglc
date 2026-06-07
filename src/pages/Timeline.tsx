@@ -280,22 +280,22 @@ function MomentCard({ moment, onDelete, onUpdateMedia }: {
   const [showMenu, setShowMenu] = useState(false)
 
   return (
-    <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gold-200/40 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="group bg-surface rounded-2xl border border-border p-4 sm:p-5 shadow-sm hover:shadow-medium transition-all duration-300 hover:border-primary-200 hover:-translate-y-0.5">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white text-lg shadow-md shadow-gold-500/30">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-lg shadow-lg shadow-primary-500/20 group-hover:scale-110 transition-transform">
             {moment.mood ? getMoodEmoji(moment.mood) : '✨'}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-ink">我</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-text-primary">我</span>
               {moment.mood && (
-                <span className="text-xs bg-gold-100 text-gold-700 px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full font-medium">
                   {getMoodEmoji(moment.mood)} {MOOD_OPTIONS.find(m => m.value === moment.mood)?.label}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs text-ink/50 mt-0.5">
+            <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5 flex-wrap">
               <span>{formatRelativeTime(moment.happenedAt)}</span>
               {moment.location && (
                 <span className="flex items-center gap-0.5">
@@ -313,17 +313,17 @@ function MomentCard({ moment, onDelete, onUpdateMedia }: {
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-1.5 rounded-full hover:bg-gold-100 text-ink/30 hover:text-ink/60 transition"
+            className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all opacity-0 group-hover:opacity-100"
           >
             <MoreHorizontal size={16} />
           </button>
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gold-200/60 py-1 z-20 min-w-[120px]">
+              <div className="absolute right-0 top-8 bg-surface rounded-xl shadow-xl border border-border py-1 z-20 min-w-[120px] overflow-hidden animate-scale-in">
                 <button
                   onClick={() => { onDelete(moment.id); setShowMenu(false) }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   <Trash2 size={14} /> 删除
                 </button>
@@ -334,7 +334,7 @@ function MomentCard({ moment, onDelete, onUpdateMedia }: {
       </div>
 
       {moment.content && (
-        <p className="mt-3 text-ink/85 leading-relaxed whitespace-pre-wrap text-[15px]">
+        <p className="mt-3 text-text-primary leading-relaxed whitespace-pre-wrap text-sm sm:text-[15px]">
           {moment.content}
         </p>
       )}
@@ -348,14 +348,14 @@ function MomentCard({ moment, onDelete, onUpdateMedia }: {
       {moment.tags && moment.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
           {moment.tags.map(tag => (
-            <span key={tag} className="text-xs text-gold-600 bg-gold-100/60 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span key={tag} className="text-xs text-primary-600 bg-primary-50 px-2.5 py-1 rounded-full flex items-center gap-1 font-medium">
               <Tag size={10} />{tag}
             </span>
           ))}
         </div>
       )}
 
-      <div className="mt-3 pt-3 border-t border-gold-100/60 flex items-center gap-4 text-xs text-ink/40">
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-3 sm:gap-4 text-xs text-text-muted flex-wrap">
         <span className="flex items-center gap-1" title={formatFullDate(moment.happenedAt)}>
           <Clock size={12} /> {formatFullDate(moment.happenedAt)}
         </span>
@@ -389,14 +389,14 @@ function DateDivider({ date, count }: DateDividerProps) {
   if (isYesterday) label = '昨天'
 
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold-300/50 to-transparent" />
-      <span className="text-sm text-ink/50 font-medium flex items-center gap-2 whitespace-nowrap">
-        <CalendarDays size={14} className="text-gold-500" />
+    <div className="flex items-center gap-3 py-2 sm:py-3">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      <span className="text-xs sm:text-sm text-text-muted font-medium flex items-center gap-1.5 whitespace-nowrap">
+        <CalendarDays size={14} className="text-primary-500" />
         {label}
-        <span className="text-ink/30">· {count} 条动态</span>
+        <span className="text-text-muted/70">· {count} 条动态</span>
       </span>
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gold-300/50 to-transparent" />
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
     </div>
   )
 }
@@ -405,36 +405,41 @@ function QuickActionCard({
   icon: Icon, 
   title, 
   description, 
-  color, 
+  gradient, 
   onClick,
-  iconBg 
+  iconGradient
 }: { 
   icon: any
   title: string
   description: string
-  color: string
+  gradient: string
   onClick: () => void
-  iconBg: string
+  iconGradient: string
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
-        "bg-gradient-to-br border border-gold-200/50",
-        color
+        "group relative overflow-hidden rounded-2xl p-5 sm:p-6 text-left transition-all duration-300",
+        "hover:shadow-xl hover:-translate-y-1.5 active:scale-[0.98]",
+        "bg-surface border border-border hover:border-primary-200",
+        gradient
       )}
     >
+      <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-[0.08] group-hover:opacity-15 transition-opacity -mr-10 -mt-10 bg-primary-500" />
+      
       <div className={cn(
-        "w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
-        iconBg
+        "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-3 sm:mb-4 transition-all duration-300",
+        "group-hover:scale-110 group-hover:rotate-3 shadow-lg",
+        iconGradient
       )}>
-        <Icon className="w-7 h-7 text-white" />
+        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
       </div>
-      <h3 className="font-display text-xl text-ink mb-1">{title}</h3>
-      <p className="text-sm text-ink/60">{description}</p>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ArrowRight className="w-5 h-5 text-ink/30" />
+      <h3 className="font-semibold text-base sm:text-lg text-text-primary mb-1">{title}</h3>
+      <p className="text-xs sm:text-sm text-text-secondary">{description}</p>
+      
+      <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+        <ArrowRight className="w-5 h-5 text-primary-500" />
       </div>
     </button>
   )
@@ -556,85 +561,90 @@ export default function MemoryCollection() {
 
   return (
     <div className="min-h-screen fade-in">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl golden-underline inline-block mb-2">📸 记忆收集</h1>
-        <p className="text-ink/60">记录生活中的每一个珍贵时刻</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-text-primary inline-block mb-2">📸 记忆收集</h1>
+        <p className="text-sm sm:text-base text-text-secondary">记录生活中的每一个珍贵时刻</p>
       </div>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
-            <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="group relative overflow-hidden rounded-2xl bg-surface border border-border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5">
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-amber-500/10 -mr-8 -mt-8 group-hover:bg-amber-500/15 transition-colors" />
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-sm text-ink/50 mb-1">照片视频</p>
-                <p className="text-3xl font-display text-ink">{stats.photos}</p>
+                <p className="text-xs sm:text-sm text-text-muted mb-1">照片视频</p>
+                <p className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">{stats.photos}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                <Image className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
+                <Image className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
-            <div className="flex items-center justify-between">
+          <div className="group relative overflow-hidden rounded-2xl bg-surface border border-border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5">
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-rose-500/10 -mr-8 -mt-8 group-hover:bg-rose-500/15 transition-colors" />
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-sm text-ink/50 mb-1">时光动态</p>
-                <p className="text-3xl font-display text-ink">{stats.moments}</p>
+                <p className="text-xs sm:text-sm text-text-muted mb-1">时光动态</p>
+                <p className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">{stats.moments}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center">
-                <PenLine className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20 group-hover:scale-110 transition-transform">
+                <PenLine className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-gold-50 to-white rounded-xl p-5 border border-gold-200/50">
-            <div className="flex items-center justify-between">
+          <div className="group relative overflow-hidden rounded-2xl bg-surface border border-border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg hover:border-primary-200 hover:-translate-y-0.5">
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-emerald-500/10 -mr-8 -mt-8 group-hover:bg-emerald-500/15 transition-colors" />
+            <div className="relative flex items-center justify-between">
               <div>
-                <p className="text-sm text-ink/50 mb-1">相册数量</p>
-                <p className="text-3xl font-display text-ink">{stats.albums}</p>
+                <p className="text-xs sm:text-sm text-text-muted mb-1">相册数量</p>
+                <p className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">{stats.albums}</p>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                <FolderTree className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+                <FolderTree className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div id="quick-actions" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div id="quick-actions" className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <QuickActionCard
           icon={PenLine}
           title="发布动态"
           description="记录此刻的心情与故事"
-          color="from-rose-50 to-pink-50"
-          iconBg="bg-gradient-to-br from-rose-500 to-pink-600"
+          gradient="hover:bg-rose-50/50"
+          iconGradient="bg-gradient-to-br from-rose-500 to-pink-600"
           onClick={() => setShowCompose(true)}
         />
         <QuickActionCard
           icon={Upload}
           title="上传媒体"
           description="批量上传照片和视频"
-          color="from-blue-50 to-sky-50"
-          iconBg="bg-gradient-to-br from-blue-500 to-sky-600"
+          gradient="hover:bg-blue-50/50"
+          iconGradient="bg-gradient-to-br from-blue-500 to-sky-600"
           onClick={() => setShowUpload(true)}
         />
         <QuickActionCard
           icon={Sparkles}
           title="智能整理"
           description="AI分类整理你的记忆"
-          color="from-purple-50 to-violet-50"
-          iconBg="bg-gradient-to-br from-purple-500 to-violet-600"
+          gradient="hover:bg-purple-50/50"
+          iconGradient="bg-gradient-to-br from-purple-500 to-violet-600"
           onClick={() => navigate('/organize')}
         />
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="font-display text-xl text-ink">⏱️ 最近动态</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+        <h2 className="font-semibold text-lg sm:text-xl text-text-primary">⏱️ 最近动态</h2>
         {years.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
             <button
               onClick={() => setSelectedYear(null)}
               className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-                selectedYear === null ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
+                'px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200',
+                selectedYear === null 
+                  ? 'bg-primary-500 text-white shadow-md shadow-primary-500/25' 
+                  : 'bg-surface text-text-secondary hover:bg-surface-hover border border-border'
               )}
             >
               全部
@@ -644,8 +654,10 @@ export default function MemoryCollection() {
                 key={year}
                 onClick={() => setSelectedYear(year)}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
-                  selectedYear === year ? 'bg-gold-500 text-white' : 'bg-white/60 text-ink/60 hover:bg-white/80'
+                  'px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all duration-200',
+                  selectedYear === year 
+                    ? 'bg-primary-500 text-white shadow-md shadow-primary-500/25' 
+                    : 'bg-surface text-text-secondary hover:bg-surface-hover border border-border'
                 )}
               >
                 {year}
@@ -656,26 +668,26 @@ export default function MemoryCollection() {
       </div>
 
       {filteredMoments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-ink/60 bg-gradient-to-br from-gold-50/50 to-white/50 rounded-2xl border border-gold-200/30">
-          <div className="w-20 h-20 rounded-full bg-gold-100 flex items-center justify-center mb-6">
-            <PenLine size={40} className="text-gold-400" />
+        <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center bg-surface rounded-2xl border border-border">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-100 flex items-center justify-center mb-4 sm:mb-6">
+            <PenLine size={28} className="sm:w-10 sm:h-10 text-primary-400" />
           </div>
-          <p className="text-xl font-medium mb-2">还没有记录</p>
-          <p className="text-sm mb-8 text-ink/40 max-w-md text-center">
-            每一个平凡的日子，都值得被记住。<br />
+          <p className="text-lg sm:text-xl font-semibold text-text-primary mb-2">还没有记录</p>
+          <p className="text-sm sm:text-base text-text-secondary mb-6 sm:mb-8 max-w-md px-4">
+            每一个平凡的日子，都值得被记住。<br className="hidden sm:block" />
             发布你的第一条动态，开启时光簿之旅
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 px-4">
             <button
               onClick={() => setShowCompose(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
+              className="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary-500 text-white rounded-xl shadow-md shadow-primary-500/20 hover:shadow-lg hover:shadow-primary-500/30 hover:bg-primary-600 transition-all active:scale-[0.98]"
             >
               <Plus size={18} />
               写下第一条动态
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-white border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition-all"
+              className="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-surface border border-border text-text-primary rounded-xl hover:bg-surface-hover transition-all"
             >
               <Upload size={18} />
               上传照片
@@ -685,15 +697,15 @@ export default function MemoryCollection() {
       ) : (
         <>
           <div className="relative pl-6 max-w-3xl mx-auto">
-            <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-gold-500/40 via-gold-400/20 to-transparent" />
+            <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary-500/30 via-primary-400/10 to-transparent" />
 
             {groupedByDate.map(({ dateKey, items }) => (
-              <div key={dateKey} className="mb-6">
+              <div key={dateKey} className="mb-4 sm:mb-6">
                 <DateDivider date={dateKey} count={items.length} />
-                <div className="space-y-4 mt-4">
+                <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
                   {items.map((moment) => (
                     <div key={moment.id} className="relative">
-                      <div className="absolute -left-6 top-6 w-3 h-3 rounded-full bg-gold-500 shadow-md shadow-gold-500/40 border-2 border-white" />
+                      <div className="absolute -left-6 top-6 w-3 h-3 rounded-full bg-primary-500 shadow-md shadow-primary-500/30 border-2 border-surface" />
                       <MomentCard moment={moment} onDelete={handleDelete} onUpdateMedia={handleUpdateMedia} />
                     </div>
                   ))}
@@ -703,10 +715,10 @@ export default function MemoryCollection() {
           </div>
 
           {moments.length < total && (
-            <div className="text-center mt-8">
+            <div className="text-center mt-6 sm:mt-8">
               <button
                 onClick={handleLoadMore}
-                className="px-6 py-2.5 bg-white/60 border border-gold-300 rounded-xl text-ink/70 hover:bg-white/80 transition-colors"
+                className="px-5 sm:px-6 py-2.5 bg-surface border border-border rounded-xl text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-all"
               >
                 加载更多
               </button>
