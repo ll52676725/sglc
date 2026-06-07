@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Camera, FolderTree, BookOpen, Palette, HelpCircle, Menu, X, ChevronRight, Sparkles } from "lucide-react";
+import { Camera, FolderTree, BookOpen, HelpCircle, Menu, X, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OnboardingModal from "./OnboardingModal";
 import { useStore } from "@/store/useStore";
@@ -12,61 +12,29 @@ const navItems = [
   { to: "/biography", label: "传记工坊", icon: BookOpen, description: "生成、编辑传记", id: "nav-biography" },
 ];
 
-function ThemeSelector() {
+function ThemeSwatches() {
   const { theme, setTheme } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
-        title="切换主题"
-      >
-        <Palette className="w-5 h-5" />
-        <span className="hidden lg:inline text-sm">主题</span>
-      </button>
-
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute bottom-full mb-2 left-0 z-50 w-64 rounded-xl bg-surface border border-border shadow-large p-3 animate-scale-in">
-            <div className="text-sm font-medium text-text-primary mb-2 px-2">选择主题</div>
-            <div className="space-y-1">
-              {themes.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    setTheme(t.id as ThemeType);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    "w-full flex items-center gap-3 p-2 rounded-lg transition-all text-left",
-                    theme === t.id 
-                      ? "bg-primary-100 text-primary-700" 
-                      : "hover:bg-surface-hover text-text-secondary"
-                  )}
-                >
-                  <div 
-                    className="w-8 h-8 rounded-lg border border-border flex-shrink-0"
-                    style={{ background: t.preview }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{t.name}</div>
-                    <div className="text-xs text-text-muted truncate">{t.description}</div>
-                  </div>
-                  {theme === t.id && (
-                    <div className="w-2 h-2 rounded-full bg-primary-500" />
-                  )}
-                </button>
-              ))}
+    <div className="flex items-center gap-1.5">
+      {themes.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => setTheme(t.id as ThemeType)}
+          className={cn(
+            "relative w-8 h-8 rounded-md border-2 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary-500/50",
+            theme === t.id ? "border-primary-500 shadow-md" : "border-transparent hover:border-border"
+          )}
+          style={{ background: t.preview }}
+          title={t.name}
+        >
+          {theme === t.id && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Check className="w-4 h-4 text-white drop-shadow-md" />
             </div>
-          </div>
-        </>
-      )}
+          )}
+        </button>
+      ))}
     </div>
   );
 }
@@ -74,6 +42,7 @@ function ThemeSelector() {
 export default function Layout() {
   const { setShowOnboarding, setOnboardingStep } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { currentThemeInfo } = useTheme();
 
   const handleOpenOnboarding = () => {
     setOnboardingStep(0);
@@ -83,13 +52,39 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background">
       <OnboardingModal />
-      
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-surface border border-border shadow-soft text-text-primary hover:bg-surface-hover transition-all"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+
+      <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-surface/80 backdrop-blur-md border-b border-border lg:pl-64">
+        <div className="h-full px-4 lg:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="lg:hidden flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary-500" />
+              <span className="font-display text-base text-text-primary">时光簿</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs text-text-muted">当前主题：</span>
+              <span className="text-xs text-text-secondary font-medium">{currentThemeInfo.name}</span>
+            </div>
+            <ThemeSwatches />
+            <div className="w-px h-6 bg-border" />
+            <button
+              onClick={handleOpenOnboarding}
+              className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all"
+              title="使用引导"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
 
       {sidebarOpen && (
         <div 
@@ -100,18 +95,18 @@ export default function Layout() {
 
       <aside className={cn(
         "fixed left-0 top-0 h-screen z-50 w-64 flex flex-col transition-transform duration-300 ease-out",
-        "bg-surface/95 backdrop-blur-md border-r border-border",
-        "lg:translate-x-0",
+        "bg-surface border-r border-border",
+        "lg:translate-x-0 lg:pt-14",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="px-5 py-5 border-b border-border flex items-center justify-between">
-          <h1 className="font-display text-xl text-text-primary flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-primary-500" />
+        <div className="px-5 py-4 border-b border-border lg:hidden flex items-center justify-between">
+          <h1 className="font-display text-lg text-text-primary flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-primary-500" />
             时光簿
           </h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all"
           >
             <X className="w-5 h-5" />
           </button>
@@ -131,12 +126,14 @@ export default function Layout() {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group cursor-pointer",
                     isActive
-                      ? "bg-primary-100 text-primary-700 font-medium"
+                      ? "bg-primary-50 text-primary-700 font-medium"
                       : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
                   )}>
                   <div className={cn(
                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                    isActive ? "bg-primary-500 text-white" : "bg-primary-50 text-primary-500 group-hover:bg-primary-100"
+                    isActive 
+                      ? "bg-primary-500 text-white shadow-sm shadow-primary-500/30" 
+                      : "bg-surface-hover text-text-muted group-hover:bg-primary-100 group-hover:text-primary-600"
                   )}>
                     <Icon className="w-5 h-5" />
                   </div>
@@ -154,20 +151,22 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-border space-y-1">
-          <ThemeSelector />
-          <button
-            onClick={handleOpenOnboarding}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-all"
-          >
-            <HelpCircle className="w-5 h-5" />
-            <span className="hidden lg:inline text-sm">使用引导</span>
-          </button>
+        <div className="px-3 py-4 border-t border-border">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-hover">
+            <div 
+              className="w-8 h-8 rounded-md border border-border flex-shrink-0"
+              style={{ background: currentThemeInfo.preview }}
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-text-primary">{currentThemeInfo.name}</div>
+              <div className="text-xs text-text-muted truncate">{currentThemeInfo.description}</div>
+            </div>
+          </div>
         </div>
       </aside>
 
-      <main className="lg:ml-64 min-h-screen w-full">
-        <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 animate-fade-in">
+      <main className="lg:ml-64 pt-14 min-h-screen w-full">
+        <div className="p-4 sm:p-6 lg:p-8 animate-fade-in">
           <Outlet />
         </div>
       </main>
