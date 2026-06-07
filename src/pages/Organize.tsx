@@ -631,12 +631,12 @@ export default function Organize() {
 
   return (
     <div className="min-h-screen fade-in">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl golden-underline inline-block mb-2">🗂️ 智能整理</h1>
-        <p className="text-ink/60">AI 帮您归类整理，让记忆井井有条</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-display text-2xl sm:text-3xl text-text-primary theme-accent-underline inline-block mb-2">🗂️ 智能整理</h1>
+        <p className="text-text-secondary text-sm sm:text-base">AI 帮您归类整理，让记忆井井有条</p>
       </div>
 
-      <div className="flex gap-2 mb-8 bg-white/60 p-1.5 rounded-xl border border-gold-200/50 w-fit">
+      <div className="flex flex-wrap gap-1 sm:gap-2 mb-6 sm:mb-8 bg-surface p-1.5 rounded-xl border border-border w-fit">
         {TABS.map((tab) => {
           const Icon = tab.icon
           return (
@@ -644,14 +644,14 @@ export default function Organize() {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all',
+                'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all',
                 activeTab === tab.key
-                  ? 'bg-gold-500 text-white shadow-md'
-                  : 'text-ink/60 hover:text-ink hover:bg-white/80'
+                  ? 'bg-primary-500 text-white shadow-md'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
               )}
             >
-              <Icon size={18} />
-              {tab.label}
+              <Icon size={16} />
+              <span className="hidden xs:inline">{tab.label}</span>
             </button>
           )
         })}
