@@ -111,33 +111,33 @@ export default function AudioPlayer({ src, className, duration: initialDuration 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <div className={cn('bg-gradient-to-r from-gold-50 to-gold-100/50 rounded-xl p-4 shadow-sm', className)}>
+    <div className={cn('bg-gradient-to-r from-gold-50 to-gold-100/50 rounded-xl p-3 sm:p-4 shadow-sm', className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <button
           onClick={togglePlay}
           disabled={isLoading || !!error}
           className={cn(
-            'w-12 h-12 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 text-white flex items-center justify-center shadow-md shadow-gold-500/30 transition-all',
+            'w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 text-white flex items-center justify-center shadow-md shadow-gold-500/30 transition-all flex-shrink-0',
             isLoading || error ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:scale-105 active:scale-95'
           )}
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
           ) : isPlaying ? (
-            <Pause className="w-5 h-5" />
+            <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <Play className="w-5 h-5 ml-0.5" fill="white" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 ml-0.5" fill="white" />
           )}
         </button>
 
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-ink/60 font-mono w-10 text-right">
+        <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <span className="text-[10px] sm:text-xs text-ink/60 font-mono w-8 sm:w-10 text-right flex-shrink-0">
               {formatTime(currentTime)}
             </span>
-            <div className="flex-1 relative h-2 bg-gold-200/60 rounded-full overflow-hidden group">
+            <div className="flex-1 relative h-1.5 sm:h-2 bg-gold-200/60 rounded-full overflow-hidden group">
               <div
                 className="absolute inset-y-0 left-0 bg-gradient-to-r from-gold-500 to-gold-600 rounded-full transition-all"
                 style={{ width: `${progress}%` }}
@@ -151,7 +151,7 @@ export default function AudioPlayer({ src, className, duration: initialDuration 
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
-            <span className="text-xs text-ink/60 font-mono w-10">
+            <span className="text-[10px] sm:text-xs text-ink/60 font-mono w-8 sm:w-10 flex-shrink-0">
               {formatTime(duration)}
             </span>
           </div>
@@ -161,7 +161,7 @@ export default function AudioPlayer({ src, className, duration: initialDuration 
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <button
             onClick={toggleMute}
             className="p-2 rounded-full hover:bg-gold-200/50 text-ink/60 hover:text-ink/80 transition"

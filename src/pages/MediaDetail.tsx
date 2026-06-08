@@ -113,43 +113,43 @@ export default function MediaDetail() {
   const tagsList = tagsInput.split(',').map((s) => s.trim()).filter(Boolean)
 
   return (
-    <div className="fixed inset-0 bg-ink/90 z-50 flex">
-      <div className="flex-1 flex items-center justify-center relative">
+    <div className="fixed inset-0 bg-ink/90 z-50 flex flex-col lg:flex-row">
+      <div className="flex-1 flex items-center justify-center relative min-h-[40vh] lg:min-h-0">
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-10 p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
+          className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 p-1.5 sm:p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
         {hasPrev && (
           <button
             onClick={() => navigate(`/media/${mediaList[currentIndex - 1].id}`)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={20} />
           </button>
         )}
 
         {hasNext && (
           <button
             onClick={() => navigate(`/media/${mediaList[currentIndex + 1].id}`)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={20} />
           </button>
         )}
 
         {item.type === 'audio' ? (
           <div className="relative">
             {item.processingStatus === 'processing' ? (
-              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-12 max-w-[70vw]">
+              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-8 sm:p-12 max-w-[90vw] lg:max-w-[70vw]">
                 <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
                 <p className="text-white/80 text-lg mb-2">语音处理中...</p>
                 <p className="text-white/50 text-sm">处理完成后即可播放</p>
               </div>
             ) : (
-              <div className="bg-ink/20 rounded-xl p-8 max-w-[60vw]">
+              <div className="bg-ink/20 rounded-xl p-4 sm:p-8 max-w-[90vw] lg:max-w-[60vw]">
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
                     <Mic className="w-8 h-8 text-white" />
@@ -167,7 +167,7 @@ export default function MediaDetail() {
         ) : item.type === 'video' ? (
           <div className="relative">
             {item.processingStatus === 'processing' ? (
-              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-12 max-w-[70vw]">
+              <div className="flex flex-col items-center justify-center bg-black/30 rounded-lg p-8 sm:p-12 max-w-[90vw] lg:max-w-[70vw]">
                 <Loader2 className="w-12 h-12 text-white animate-spin mb-4" />
                 <p className="text-white/80 text-lg mb-2">视频处理中...</p>
                 <p className="text-white/50 text-sm">转码完成后即可播放</p>
@@ -178,7 +178,7 @@ export default function MediaDetail() {
                 hlsMasterUrl={item.hlsMasterUrl}
                 qualities={item.videoQualities}
                 poster={item.thumbnailUrl}
-                className="max-h-[80vh] max-w-[70vw] shadow-2xl"
+                className="max-h-[60vh] lg:max-h-[80vh] max-w-full lg:max-w-[70vw] shadow-2xl"
               />
             )}
           </div>
@@ -186,12 +186,12 @@ export default function MediaDetail() {
           <img
             src={item.url}
             alt={item.description || item.filename}
-            className="max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            className="max-h-[60vh] lg:max-h-[80vh] max-w-full lg:max-w-[70vw] object-contain rounded-lg shadow-2xl"
           />
         )}
       </div>
 
-      <div className="w-80 bg-ivory rounded-l-2xl slide-in-right overflow-y-auto p-6 flex flex-col">
+      <div className="w-full lg:w-80 bg-ivory rounded-t-2xl lg:rounded-l-2xl lg:rounded-tr-none slide-in-right overflow-y-auto p-4 sm:p-6 flex flex-col max-h-[50vh] lg:max-h-none">
         <h2 className="font-display text-xl text-ink golden-underline inline-block mb-6">记忆详情</h2>
 
         <div className="space-y-4 flex-1">
@@ -325,7 +325,7 @@ export default function MediaDetail() {
               <div className="bg-white/50 rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex justify-between">
                 <span className="text-ink/50">文件名</span>
-                <span className="text-ink/80 truncate max-w-[160px]" title={item.filename}>{item.filename}</span>
+                <span className="text-ink/80 truncate max-w-[120px] sm:max-w-[160px]" title={item.filename}>{item.filename}</span>
               </div>
               {item.duration !== undefined && item.duration > 0 && (
                 <div className="flex justify-between">
@@ -391,7 +391,7 @@ export default function MediaDetail() {
               <div className="bg-white/50 rounded-lg p-3 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-ink/50">文件名</span>
-                  <span className="text-ink/80 truncate max-w-[160px]" title={item.filename}>{item.filename}</span>
+                  <span className="text-ink/80 truncate max-w-[120px] sm:max-w-[160px]" title={item.filename}>{item.filename}</span>
                 </div>
                 {item.duration !== undefined && item.duration > 0 && (
                   <div className="flex justify-between">

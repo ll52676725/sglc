@@ -108,19 +108,19 @@ export default function AlbumDetail() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8 fade-in">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8 fade-in">
       <Link
         to="/albums"
-        className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink transition mb-6"
+        className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink transition mb-4 sm:mb-6"
       >
         <ArrowLeft size={18} />
         返回相册
       </Link>
 
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="font-display text-2xl text-ink">{album.name}</h1>
+            <h1 className="font-display text-xl sm:text-2xl text-ink">{album.name}</h1>
             {album.category && (
               <span className="bg-gold-500/10 text-gold-600 text-xs px-2.5 py-1 rounded-full">
                 {CATEGORY_LABELS[album.category]}
@@ -139,9 +139,9 @@ export default function AlbumDetail() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-gold-500 text-white px-5 py-2.5 rounded-xl hover:bg-gold-600 transition font-medium"
+          className="flex items-center gap-2 bg-gold-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl hover:bg-gold-600 transition font-medium text-sm sm:text-base self-start sm:self-auto"
         >
-          <Plus size={18} />
+          <Plus size={16} />
           添加照片
         </button>
       </div>
@@ -159,7 +159,7 @@ export default function AlbumDetail() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
           {media.map((item) => (
             <div
               key={item.id}
@@ -208,10 +208,10 @@ export default function AlbumDetail() {
       )}
 
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
-          <div className="bg-ivory rounded-2xl w-full max-w-4xl max-h-[85vh] shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gold-200">
-              <h2 className="font-display text-xl">添加照片到相册</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-2 sm:p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-ivory rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[85vh] shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gold-200">
+              <h2 className="font-display text-lg sm:text-xl">添加照片到相册</h2>
               <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-ink/5 rounded-lg transition">
                 <X size={20} className="text-ink/60" />
               </button>
@@ -221,26 +221,26 @@ export default function AlbumDetail() {
               <button
                 onClick={() => setAddTab('library')}
                 className={cn(
-                  'flex items-center gap-2 px-6 py-3 font-medium transition',
+                  'flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-medium transition text-sm sm:text-base',
                   addTab === 'library' ? 'text-gold-600 border-b-2 border-gold-500' : 'text-ink/60 hover:text-ink'
                 )}
               >
-                <Library size={18} />
+                <Library size={16} />
                 从媒体库选择
               </button>
               <button
                 onClick={() => setAddTab('upload')}
                 className={cn(
-                  'flex items-center gap-2 px-6 py-3 font-medium transition',
+                  'flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 font-medium transition text-sm sm:text-base',
                   addTab === 'upload' ? 'text-gold-600 border-b-2 border-gold-500' : 'text-ink/60 hover:text-ink'
                 )}
               >
-                <Upload size={18} />
+                <Upload size={16} />
                 上传新照片
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {addTab === 'library' ? (
                 <>
                   {mediaNotInAlbum.length === 0 ? (
@@ -250,7 +250,7 @@ export default function AlbumDetail() {
                       <p className="text-sm mt-1">去上传一些新照片吧</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
                       {mediaNotInAlbum.map((item) => (
                         <div
                           key={item.id}
@@ -324,21 +324,21 @@ export default function AlbumDetail() {
             </div>
 
             {addTab === 'library' && (
-              <div className="flex items-center justify-between p-6 border-t border-gold-200 bg-gold-50/50 rounded-b-2xl">
-                <p className="text-ink/60">
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-6 border-t border-gold-200 bg-gold-50/50 rounded-b-2xl gap-3">
+                <p className="text-ink/60 text-sm">
                   已选择 <span className="font-semibold text-gold-600">{selectedMedia.size}</span> 张照片
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAddModal(false)}
-                    className="px-5 py-2 rounded-lg text-ink/70 hover:bg-ink/5 transition"
+                    className="px-4 sm:px-5 py-2 rounded-lg text-ink/70 hover:bg-ink/5 transition text-sm"
                   >
                     取消
                   </button>
                   <button
                     onClick={handleAddFromLibrary}
                     disabled={selectedMedia.size === 0 || saving}
-                    className="px-5 py-2 bg-gold-500 text-white rounded-lg hover:bg-gold-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 sm:px-5 py-2 bg-gold-500 text-white rounded-lg hover:bg-gold-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                   >
                     {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                     {saving ? '添加中...' : '添加到相册'}

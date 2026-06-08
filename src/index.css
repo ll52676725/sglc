@@ -300,3 +300,16 @@ body {
 .theme-selector-btn.active {
   box-shadow: 0 0 0 2px rgb(var(--color-primary-500));
 }
+
+@media (max-width: 640px) {
+  .masonry {
+    column-count: 1;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  input[type="date"],
+  input[type="datetime-local"] {
+    font-size: 16px;
+  }
+}

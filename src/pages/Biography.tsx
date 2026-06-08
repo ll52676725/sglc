@@ -240,10 +240,10 @@ export default function BiographyPage() {
   }
 
   return (
-    <div className="flex min-h-screen -m-8">
-      <aside className="w-80 flex-shrink-0 bg-parchment/40 border-r border-gold-200 overflow-y-auto p-6 sticky top-0 h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen -m-4 sm:-m-6 lg:-m-8">
+      <aside className="w-full lg:w-80 flex-shrink-0 bg-parchment/40 border-b lg:border-b-0 lg:border-r border-gold-200 overflow-y-auto p-4 sm:p-6 lg:sticky lg:top-0 lg:h-screen">
         <div className="mb-6">
-          <h1 className="font-display text-2xl text-ink golden-underline inline-block mb-2">📖 传记工坊</h1>
+          <h1 className="font-display text-xl sm:text-2xl text-ink golden-underline inline-block mb-2">📖 传记工坊</h1>
           <p className="text-sm text-ink/60">将美好的时光编织成动人的故事</p>
         </div>
 
@@ -474,7 +474,7 @@ export default function BiographyPage() {
         </div>
       </aside>
 
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
         {!currentBio ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 flex items-center justify-center mb-6">
@@ -484,7 +484,7 @@ export default function BiographyPage() {
             <p className="text-ink/50 max-w-md">
               在左侧选择时间范围和风格，让我们一起把这段时光变成一个动人的故事
             </p>
-            <div className="flex flex-wrap justify-center gap-3 mt-8">
+            <div className="flex flex-wrap justify-center gap-3 mt-4 sm:mt-8">
               {Object.entries(STYLE_ICONS).slice(0, 6).map(([key, icon]) => (
                 <div
                   key={key}
@@ -498,11 +498,11 @@ export default function BiographyPage() {
           </div>
         ) : (
           <div className="fade-in max-w-3xl mx-auto">
-            <div className="text-center mb-12">
+            <div className="text-center mb-6 sm:mb-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 mb-4">
                 <span className="text-3xl">{STYLE_ICONS[currentBio.style]}</span>
               </div>
-              <h1 className="font-display text-4xl text-ink mb-3">
+              <h1 className="font-display text-2xl sm:text-4xl text-ink mb-3">
                 {currentBio.title}
               </h1>
               <p className="text-ink/60">
@@ -595,11 +595,11 @@ export default function BiographyPage() {
             </div>
 
             {editing ? (
-              <div className="bg-white rounded-2xl shadow-lg border border-gold-100 p-6">
+              <div className="bg-white rounded-2xl shadow-lg border border-gold-100 p-4 sm:p-6">
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full min-h-[60vh] bg-transparent text-lg leading-9 text-ink/80 font-body focus:outline-none resize-none"
+                  className="w-full min-h-[60vh] bg-transparent text-base sm:text-lg leading-relaxed sm:leading-9 text-ink/80 font-body focus:outline-none resize-none"
                   placeholder="在这里编辑传记内容..."
                 />
               </div>
@@ -609,7 +609,7 @@ export default function BiographyPage() {
                   <div
                     key={idx}
                     className={cn(
-                      'p-8',
+                      'p-4 sm:p-8',
                       idx < currentBio.chapters.length - 1 && 'border-b border-gold-100'
                     )}
                   >
@@ -617,16 +617,16 @@ export default function BiographyPage() {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-100 to-gold-200 flex items-center justify-center">
                         {getChapterDecorator(currentBio.style, idx)}
                       </div>
-                      <h2 className="font-display text-2xl text-ink">
+                      <h2 className="font-display text-lg sm:text-2xl text-ink">
                         {chapter.title}
                       </h2>
                     </div>
-                    <div className="text-ink/80 leading-9 text-lg font-body whitespace-pre-line pl-13">
+                    <div className="text-ink/80 leading-relaxed sm:leading-9 text-base sm:text-lg font-body whitespace-pre-line pl-0 sm:pl-13">
                       {chapter.content}
                     </div>
 
                     {chapter.mediaIds && chapter.mediaIds.length > 0 && (
-                      <div className="mt-6 ml-13">
+                      <div className="mt-6 ml-0 sm:ml-13">
                         <p className="text-xs text-ink/40 mb-3 flex items-center gap-1.5">
                           <Image size={12} /> 相关媒体 ({chapter.mediaIds.length})
                         </p>
@@ -650,7 +650,7 @@ export default function BiographyPage() {
                     )}
 
                     {chapter.momentIds && chapter.momentIds.length > 0 && (
-                      <div className="mt-4 ml-13">
+                      <div className="mt-4 ml-0 sm:ml-13">
                         <p className="text-xs text-ink/40 mb-2 flex items-center gap-1.5">
                           <Clock size={12} /> 时光记录 ({chapter.momentIds.length})
                         </p>
@@ -670,7 +670,7 @@ export default function BiographyPage() {
                   </div>
                 ))}
 
-                <div className="p-8 bg-gradient-to-t from-gold-50/50 to-transparent text-center">
+                <div className="p-4 sm:p-8 bg-gradient-to-t from-gold-50/50 to-transparent text-center">
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gold-100 mb-4">
                     <Star className="w-6 h-6 text-gold-500" />
                   </div>

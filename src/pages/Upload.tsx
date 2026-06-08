@@ -408,7 +408,7 @@ export default function Upload() {
           <div className="bg-white/60 rounded-xl p-4 space-y-4">
             <div className="flex flex-wrap gap-6">
               {albums.length > 0 && (
-                <div className="flex-1 min-w-[280px]">
+                <div className="flex-1 min-w-0 sm:min-w-[280px]">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                     <FolderOpen size={14} /> 归入相册（可选）
                   </label>
@@ -427,7 +427,7 @@ export default function Upload() {
                 </div>
               )}
 
-              <div className="flex-1 min-w-[280px]">
+              <div className="flex-1 min-w-0 sm:min-w-[280px]">
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                   <Clock size={14} /> 同步到时光动态
                 </label>
@@ -452,7 +452,7 @@ export default function Upload() {
               </div>
 
               {videoCount > 0 && (
-                <div className="flex-1 min-w-[280px]">
+                <div className="flex-1 min-w-0 sm:min-w-[280px]">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                     <Zap size={14} /> 视频智能压缩
                   </label>

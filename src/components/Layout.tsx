@@ -53,7 +53,7 @@ export default function Layout() {
     <div className="min-h-screen bg-background">
       <OnboardingModal />
 
-      <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-surface/80 backdrop-blur-md border-b border-border lg:pl-64">
+      <header className="fixed top-0 left-0 right-0 z-40 h-14 bg-surface/80 backdrop-blur-md border-b border-border lg:pl-64" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="h-full px-4 lg:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -165,7 +165,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="lg:ml-64 pt-14 min-h-screen w-full">
+      <main className="lg:ml-64 pt-14 min-h-screen w-full" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="p-4 sm:p-6 lg:p-8 animate-fade-in">
           <Outlet />
         </div>

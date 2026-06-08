@@ -175,12 +175,12 @@ export default function Organize() {
   const renderAiTab = () => {
     if (aiLoading) {
       return (
-        <div className="flex flex-col items-center justify-center py-24">
+        <div className="flex flex-col items-center justify-center py-16 sm:py-24">
           <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-8 h-8 text-purple-500 animate-pulse" />
-            <p className="text-lg text-ink/70">AI 正在分析您的照片...</p>
+            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 animate-pulse" />
+            <p className="text-base sm:text-lg text-ink/70">AI 正在分析您的照片...</p>
           </div>
-          <div className="w-64 h-2 bg-gold-100 rounded-full overflow-hidden">
+          <div className="w-48 sm:w-64 h-2 bg-gold-100 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" style={{ width: '60%' }} />
           </div>
         </div>
@@ -189,10 +189,10 @@ export default function Organize() {
 
     if (!aiData) {
       return (
-        <div className="flex flex-col items-center justify-center py-24 text-ink/60">
-          <Sparkles size={48} className="mb-4 text-gold-500/50" />
-          <p className="text-lg mb-2">暂无分析结果</p>
-          <p className="text-sm mb-6 text-ink/40">上传更多照片并添加标签，开始 AI 智能分类</p>
+        <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-ink/60">
+          <Sparkles size={40} className="mb-4 text-gold-500/50 sm:w-12 sm:h-12" />
+          <p className="text-base sm:text-lg mb-2">暂无分析结果</p>
+          <p className="text-xs sm:text-sm mb-6 text-ink/40">上传更多照片并添加标签，开始 AI 智能分类</p>
           <button
             onClick={() => loadAiData(true)}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
@@ -205,12 +205,12 @@ export default function Organize() {
     }
 
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="font-display text-2xl text-ink flex items-center gap-2">
-                <Sparkles className="w-6 h-6 text-purple-500" />
+              <h2 className="font-display text-lg sm:text-2xl text-ink flex items-center gap-2">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
                 AI 智能分类
               </h2>
               <button
@@ -237,11 +237,11 @@ export default function Organize() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <select
               value={selectedAlbumId}
               onChange={(e) => setSelectedAlbumId(e.target.value)}
-              className="border border-gold-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink"
+              className="border border-gold-300 rounded-lg px-3 sm:px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink text-sm"
             >
               <option value="all">全部媒体</option>
               {albums.map((album) => (
@@ -264,11 +264,11 @@ export default function Organize() {
 
         {aiData.insights.length > 0 && (
           <div>
-            <h3 className="font-display text-xl text-ink mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-500" />
+            <h3 className="font-display text-base sm:text-xl text-ink mb-4 flex items-center gap-2">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
               AI 洞察
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {aiData.insights.map((insight, idx) => (
                 <div
                   key={idx}
@@ -289,15 +289,15 @@ export default function Organize() {
               className="flex items-center justify-between mb-4 cursor-pointer"
               onClick={() => setExpandedStory(!expandedStory)}
             >
-              <h3 className="font-display text-xl text-ink flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-purple-500" />
+              <h3 className="font-display text-base sm:text-xl text-ink flex items-center gap-2">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                 时光故事
               </h3>
               {expandedStory ? <ChevronUp size={20} className="text-ink/40" /> : <ChevronDown size={20} className="text-ink/40" />}
             </div>
             {expandedStory && (
-              <div className="bg-gradient-to-br from-ivory to-parchment/30 rounded-2xl p-6 border border-gold-200/50">
-                <p className="text-ink/80 leading-relaxed mb-6 text-lg font-medium">
+              <div className="bg-gradient-to-br from-ivory to-parchment/30 rounded-2xl p-4 sm:p-6 border border-gold-200/50">
+                <p className="text-ink/80 leading-relaxed mb-6 text-base sm:text-lg font-medium">
                   {aiData.timelineStory.summary}
                 </p>
                 <div className="space-y-6">
@@ -325,11 +325,11 @@ export default function Organize() {
 
         {aiData.autoAlbumSuggestions.length > 0 && (
           <div>
-            <h3 className="font-display text-xl text-ink mb-4 flex items-center gap-2">
-              <FolderPlus className="w-5 h-5 text-green-500" />
+            <h3 className="font-display text-base sm:text-xl text-ink mb-4 flex items-center gap-2">
+              <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
               推荐相册
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {aiData.autoAlbumSuggestions.map((suggestion) => {
                 const preview = getMediaPreview(suggestion.mediaIds)
                 return (
@@ -337,7 +337,7 @@ export default function Organize() {
                     key={suggestion.name}
                     className="bg-white/80 backdrop-blur rounded-xl overflow-hidden border border-gold-200/50 shadow-sm hover:shadow-md transition"
                   >
-                    <div className="grid grid-cols-4 gap-0.5 h-32">
+                    <div className="grid grid-cols-4 gap-0.5 h-24 sm:h-32">
                       {preview.map((m, i) => m && (
                         <img
                           key={i}
@@ -387,8 +387,8 @@ export default function Organize() {
         )}
 
         <div>
-          <h3 className="font-display text-xl text-ink mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-500" />
+          <h3 className="font-display text-base sm:text-xl text-ink mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
             智能分组
           </h3>
 
@@ -402,7 +402,7 @@ export default function Organize() {
                   key={type}
                   onClick={() => setActiveGroup(type)}
                   className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all',
+                    'flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all',
                     activeGroup === type
                       ? `bg-gradient-to-r ${config.color} text-white shadow-md`
                       : 'bg-white/60 text-ink/70 hover:bg-white/80'
@@ -428,7 +428,7 @@ export default function Organize() {
               <p className="text-sm mt-1">添加更多标签和元数据来获得更精准的分类</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {currentGroup.map((group: AIGroupItem) => {
                 const preview = getMediaPreview(group.mediaIds)
                 return (
@@ -436,7 +436,7 @@ export default function Organize() {
                     key={group.name}
                     className="bg-white/80 backdrop-blur rounded-xl overflow-hidden border border-gold-200/50 shadow-sm hover:shadow-md transition cursor-pointer group"
                   >
-                    <div className="relative grid grid-cols-4 gap-0.5 h-28">
+                    <div className="relative grid grid-cols-4 gap-0.5 h-20 sm:h-28">
                       {preview.map((m, i) => m && (
                         <img
                           key={i}
@@ -475,19 +475,19 @@ export default function Organize() {
   const renderAlbumsTab = () => {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl text-ink flex items-center gap-2">
-              <FolderOpen className="w-6 h-6 text-emerald-500" />
+            <h2 className="font-display text-lg sm:text-2xl text-ink flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
               我的相册
             </h2>
-            <p className="text-ink/60 mt-1">管理和整理您的照片合集</p>
+            <p className="text-ink/60 mt-1 text-sm sm:text-base">管理和整理您的照片合集</p>
           </div>
           <button
             onClick={() => setShowCreateAlbum(true)}
-            className="flex items-center gap-2 bg-gold-500 text-white px-5 py-2.5 rounded-xl hover:bg-gold-600 transition font-medium"
+            className="flex items-center gap-2 bg-gold-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl hover:bg-gold-600 transition font-medium text-sm sm:text-base self-start sm:self-auto"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             创建相册
           </button>
         </div>
@@ -520,7 +520,7 @@ export default function Organize() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {albums.map((album) => (
               <div
                 key={album.id}
@@ -566,16 +566,16 @@ export default function Organize() {
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl text-ink flex items-center gap-2">
-              <Grid3X3 className="w-6 h-6 text-blue-500" />
+            <h2 className="font-display text-lg sm:text-2xl text-ink flex items-center gap-2">
+              <Grid3X3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
               全部媒体
             </h2>
-            <p className="text-ink/60 mt-1">共 {media.length} 个文件（{photos.length} 张照片，{videos.length} 个视频）</p>
+            <p className="text-ink/60 mt-1 text-sm sm:text-base">共 {media.length} 个文件（{photos.length} 张照片，{videos.length} 个视频）</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gold-300 rounded-lg text-ink/70 hover:bg-gold-50 transition">
+            <button className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gold-300 rounded-lg text-ink/70 hover:bg-gold-50 transition text-sm">
               <Filter size={16} />
               筛选
             </button>
@@ -598,7 +598,7 @@ export default function Organize() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2">
             {media.map((item) => (
               <div
                 key={item.id}
@@ -685,7 +685,7 @@ export default function Organize() {
 
       {showCreateAlbum && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm" onClick={() => setShowCreateAlbum(false)}>
-          <div className="bg-ivory rounded-2xl p-6 w-[480px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-ivory rounded-2xl p-4 sm:p-6 w-full max-w-[calc(100vw-2rem)] sm:w-[480px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-display text-xl mb-6">创建相册</h2>
             <div className="space-y-4">
               <div>

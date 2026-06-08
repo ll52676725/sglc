@@ -330,8 +330,8 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4">
       <div className="bg-ivory rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gold-200/50">
-          <h2 className="font-display text-xl text-ink">📤 上传记忆</h2>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gold-200/50">
+          <h2 className="font-display text-lg sm:text-xl text-ink">📤 上传记忆</h2>
           <button
             onClick={onClose}
             disabled={uploading}
@@ -341,7 +341,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {selectedFiles.length === 0 && uploadingFiles.length === 0 && (
             <div
               onDragOver={handleDragOver}
@@ -349,7 +349,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
               onDrop={handleDrop}
               onClick={handleClick}
               className={cn(
-                'border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300',
+                'border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-300',
                 isDragging
                   ? 'border-gold-500 bg-gold-50/30 scale-[1.01]'
                   : 'border-gold-300 bg-white/40 hover:border-gold-400 hover:bg-white/50'
@@ -422,7 +422,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
               <div className="bg-white/60 rounded-xl p-4 space-y-4">
                 <div className="flex flex-wrap gap-4">
                   {albums.length > 0 && (
-                    <div className="flex-1 min-w-[240px]">
+                    <div className="flex-1 min-w-0 sm:min-w-[240px]">
                       <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                         <FolderOpen size={14} /> 归入相册（可选）
                       </label>
@@ -441,7 +441,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-[240px]">
+                  <div className="flex-1 min-w-0 sm:min-w-[240px]">
                     <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                       <Clock size={14} /> 同步到时光动态
                     </label>
@@ -466,7 +466,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
                   </div>
 
                   {videoCount > 0 && (
-                    <div className="flex-1 min-w-[240px]">
+                    <div className="flex-1 min-w-0 sm:min-w-[240px]">
                       <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
                         <Zap size={14} /> 视频智能压缩
                       </label>
@@ -599,37 +599,37 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-gold-200/50 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gold-200/50 flex flex-col sm:flex-row items-center justify-between gap-3">
           {selectedFiles.length > 0 ? (
             <>
-              <div className="text-sm text-ink/50">
+              <div className="text-xs sm:text-sm text-ink/50 text-center sm:text-left">
                 共 {selectedFiles.length} 个文件，总大小约 {formatFileSize(selectedFiles.reduce((sum, f) => sum + f.originalSize, 0))}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={clearAllFiles}
-                  className="px-6 py-2.5 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium text-sm"
                 >
                   取消
                 </button>
                 <button
                   onClick={startUpload}
                   disabled={uploading}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   <UploadIcon size={18} /> 开始上传
                 </button>
               </div>
             </>
           ) : allDone ? (
-            <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-3">
               <div className="flex items-center gap-2 text-green-600">
                 <Check size={18} />
-                <span>上传成功！正在跳转...</span>
+                <span className="text-sm">上传成功！正在跳转...</span>
               </div>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium"
+                className="px-4 sm:px-6 py-2 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium text-sm"
               >
                 完成
               </button>
@@ -638,7 +638,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
             <div className="ml-auto">
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium"
+                className="px-4 sm:px-6 py-2 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium text-sm"
               >
                 关闭
               </button>
