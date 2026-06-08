@@ -312,11 +312,11 @@ export default function AlbumDetail() {
                   ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-gold-300 rounded-2xl p-12 text-center cursor-pointer hover:border-gold-500 hover:bg-gold-50/30 transition w-full max-w-md"
+                      className="border-2 border-dashed border-gold-300 rounded-2xl p-6 sm:p-12 text-center cursor-pointer hover:border-gold-500 hover:bg-gold-50/30 transition w-full max-w-md"
                     >
-                      <Upload className="w-12 h-12 mx-auto mb-4 text-gold-400" />
-                      <p className="text-lg text-ink/70 mb-1">点击选择文件上传</p>
-                      <p className="text-sm text-ink/40">支持 JPG、PNG、GIF、MP4、MOV 格式</p>
+                      <Upload className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-gold-400" />
+                      <p className="text-base sm:text-lg text-ink/70 mb-1">点击选择文件上传</p>
+                      <p className="text-xs sm:text-sm text-ink/40">支持 JPG、PNG、GIF、MP4、MOV 格式</p>
                     </div>
                   )}
                 </div>

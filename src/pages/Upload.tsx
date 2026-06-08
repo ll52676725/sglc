@@ -326,7 +326,7 @@ export default function Upload() {
 
   return (
     <div className="min-h-screen fade-in">
-      <h1 className="font-display text-3xl text-ink golden-underline inline-block mb-8">上传记忆</h1>
+      <h1 className="font-display text-xl sm:text-3xl text-ink golden-underline inline-block mb-4 sm:mb-8">上传记忆</h1>
 
       {selectedFiles.length === 0 && uploadingFiles.length === 0 && (
         <div
@@ -335,15 +335,15 @@ export default function Upload() {
           onDrop={handleDrop}
           onClick={handleClick}
           className={cn(
-            'border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300',
+            'border-2 border-dashed rounded-2xl p-6 sm:p-12 text-center cursor-pointer transition-all duration-300',
             isDragging
               ? 'border-gold-500 bg-gold-50/30 scale-[1.01]'
               : 'border-gold-300 bg-white/40 hover:border-gold-400 hover:bg-white/50'
           )}
         >
-          <CloudUpload className={cn('w-12 h-12 mx-auto mb-4', isDragging ? 'text-gold-500' : 'text-gold-400')} />
-          <p className="text-lg text-ink/70 mb-1">拖拽照片和视频到这里</p>
-          <p className="text-sm text-ink/40">或者点击选择文件</p>
+          <CloudUpload className={cn('w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4', isDragging ? 'text-gold-500' : 'text-gold-400')} />
+          <p className="text-base sm:text-lg text-ink/70 mb-1">拖拽照片和视频到这里</p>
+          <p className="text-xs sm:text-sm text-ink/40">或者点击选择文件</p>
           <input
             ref={inputRef}
             type="file"
@@ -406,7 +406,7 @@ export default function Upload() {
           </div>
 
           <div className="bg-white/60 rounded-xl p-4 space-y-4">
-            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-wrap gap-4 sm:gap-6">
               {albums.length > 0 && (
                 <div className="flex-1 min-w-0 sm:min-w-[280px]">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gold-700 mb-2">
@@ -556,21 +556,21 @@ export default function Upload() {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-2">
-              <div className="text-sm text-ink/50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+              <div className="text-xs sm:text-sm text-ink/50">
                 共 {selectedFiles.length} 个文件，总大小约 {formatFileSize(selectedFiles.reduce((sum, f) => sum + f.originalSize, 0))}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={clearAllFiles}
-                  className="px-6 py-2.5 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 border border-gold-300 text-ink/70 rounded-xl hover:bg-gold-50 transition font-medium text-sm"
                 >
                   取消
                 </button>
                 <button
                   onClick={startUpload}
                   disabled={uploading}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gold-500 text-white rounded-xl hover:bg-gold-600 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   <UploadIcon size={18} /> 开始上传
                 </button>

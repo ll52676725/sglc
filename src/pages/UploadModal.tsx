@@ -329,7 +329,7 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4">
-      <div className="bg-ivory rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-ivory rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gold-200/50">
           <h2 className="font-display text-lg sm:text-xl text-ink">📤 上传记忆</h2>
           <button
@@ -349,15 +349,15 @@ export default function UploadModal({ onClose, onSuccess }: UploadModalProps) {
               onDrop={handleDrop}
               onClick={handleClick}
               className={cn(
-                'border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-300',
+                'border-2 border-dashed rounded-2xl p-5 sm:p-8 lg:p-12 text-center cursor-pointer transition-all duration-300',
                 isDragging
                   ? 'border-gold-500 bg-gold-50/30 scale-[1.01]'
                   : 'border-gold-300 bg-white/40 hover:border-gold-400 hover:bg-white/50'
               )}
             >
-              <CloudUpload className={cn('w-12 h-12 mx-auto mb-4', isDragging ? 'text-gold-500' : 'text-gold-400')} />
-              <p className="text-lg text-ink/70 mb-1">拖拽照片和视频到这里</p>
-              <p className="text-sm text-ink/40">或者点击选择文件</p>
+              <CloudUpload className={cn('w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4', isDragging ? 'text-gold-500' : 'text-gold-400')} />
+              <p className="text-base sm:text-lg text-ink/70 mb-1">拖拽照片和视频到这里</p>
+              <p className="text-xs sm:text-sm text-ink/40">或者点击选择文件</p>
               <input
                 ref={inputRef}
                 type="file"

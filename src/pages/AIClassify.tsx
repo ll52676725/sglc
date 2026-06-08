@@ -154,7 +154,7 @@ export default function AIClassify() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8 fade-in">
+    <div className="min-h-screen p-3 sm:p-6 md:p-8 fade-in">
       <Link
         to="/albums"
         className="inline-flex items-center gap-1.5 text-ink/60 hover:text-ink transition mb-6"
@@ -163,11 +163,11 @@ export default function AIClassify() {
         返回相册
       </Link>
 
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 sm:mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="font-display text-3xl golden-underline inline-block">
-              <Sparkles className="inline w-8 h-8 mr-2 text-purple-500" />
+            <h1 className="font-display text-xl sm:text-3xl golden-underline inline-block">
+              <Sparkles className="inline w-6 h-6 sm:w-8 sm:h-8 mr-1 sm:mr-2 text-purple-500" />
               AI 智能分类
             </h1>
             <button
@@ -194,11 +194,11 @@ export default function AIClassify() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={selectedAlbumId}
             onChange={(e) => setSelectedAlbumId(e.target.value)}
-            className="border border-gold-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink"
+            className="border border-gold-300 rounded-lg px-3 sm:px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gold-500/40 text-ink text-sm"
           >
             <option value="all">全部媒体</option>
             {albums.map((album) => (
@@ -209,12 +209,12 @@ export default function AIClassify() {
             onClick={() => loadData(true)}
             disabled={refreshing || loading}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 bg-white border border-gold-300 rounded-lg text-ink/70 hover:bg-gold-50 transition',
+              'flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gold-300 rounded-lg text-ink/70 hover:bg-gold-50 transition text-sm',
               (refreshing || loading) && 'opacity-60 cursor-not-allowed'
             )}
           >
             <RefreshCw size={16} className={cn(refreshing && 'animate-spin')} />
-            {refreshing ? '分析中...' : '重新分析'}
+            <span className="hidden sm:inline">{refreshing ? '分析中...' : '重新分析'}</span>
           </button>
         </div>
       </div>
@@ -227,7 +227,7 @@ export default function AIClassify() {
                 <Zap className="w-5 h-5 text-amber-500" />
                 AI 洞察
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {data.insights.map((insight, idx) => (
                   <div
                     key={idx}
@@ -255,13 +255,13 @@ export default function AIClassify() {
                 {expandedStory ? <ChevronUp size={20} className="text-ink/40" /> : <ChevronDown size={20} className="text-ink/40" />}
               </div>
               {expandedStory && (
-                <div className="bg-gradient-to-br from-ivory to-parchment/30 rounded-2xl p-6 border border-gold-200/50">
-                  <p className="text-ink/80 leading-relaxed mb-6 text-lg font-medium">
+                <div className="bg-gradient-to-br from-ivory to-parchment/30 rounded-2xl p-4 sm:p-6 border border-gold-200/50">
+                  <p className="text-ink/80 leading-relaxed mb-4 sm:mb-6 text-sm sm:text-lg font-medium">
                     {data.timelineStory.summary}
                   </p>
                   <div className="space-y-6">
                     {data.timelineStory.chapters.map((chapter) => (
-                      <div key={chapter.year} className="relative pl-8 border-l-2 border-gold-300/50">
+                      <div key={chapter.year} className="relative pl-6 sm:pl-8 border-l-2 border-gold-300/50">
                         <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-gold-500 shadow-lg shadow-gold-500/50" />
                         <h3 className="font-display text-lg text-ink mb-2">{chapter.title}</h3>
                         <p className="text-sm text-ink/50 mb-2">{chapter.mediaCount} 张照片</p>
@@ -293,7 +293,7 @@ export default function AIClassify() {
                 <FolderPlus className="w-5 h-5 text-green-500" />
                 推荐相册
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {data.autoAlbumSuggestions.map((suggestion) => {
                   const preview = getMediaPreview(suggestion.mediaIds)
                   return (
@@ -301,7 +301,7 @@ export default function AIClassify() {
                       key={suggestion.name}
                       className="bg-white/80 backdrop-blur rounded-xl overflow-hidden border border-gold-200/50 shadow-sm hover:shadow-md transition"
                     >
-                      <div className="grid grid-cols-4 gap-0.5 h-32">
+                      <div className="grid grid-cols-4 gap-0.5 h-24 sm:h-32">
                         {preview.map((m, i) => m && (
                           m.type === 'video' && !m.thumbnailUrl ? (
                             <video
@@ -403,7 +403,7 @@ export default function AIClassify() {
                 <p className="text-sm mt-1">添加更多标签和元数据来获得更精准的分类</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {currentGroup.map((group: AIGroupItem) => {
                   const preview = getMediaPreview(group.mediaIds)
                   return (
@@ -412,7 +412,7 @@ export default function AIClassify() {
                       onClick={() => navigate(`/?tag=${encodeURIComponent(group.name)}`)}
                       className="bg-white/80 backdrop-blur rounded-xl overflow-hidden border border-gold-200/50 shadow-sm hover:shadow-md transition cursor-pointer group"
                     >
-                      <div className="relative grid grid-cols-4 gap-0.5 h-28">
+                      <div className="relative grid grid-cols-4 gap-0.5 h-20 sm:h-28">
                         {preview.map((m, i) => m && (
                           m.type === 'video' && !m.thumbnailUrl ? (
                             <video
