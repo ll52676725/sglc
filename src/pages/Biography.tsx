@@ -240,7 +240,7 @@ export default function BiographyPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen -m-4 sm:-m-6 lg:-m-8">
+    <div className="flex flex-col lg:flex-row min-h-screen -m-3 sm:-m-4 lg:-m-8">
       <aside className="w-full lg:w-80 flex-shrink-0 bg-parchment/40 border-b lg:border-b-0 lg:border-r border-gold-200 overflow-y-auto p-4 sm:p-6 lg:sticky lg:top-0 lg:h-screen">
         <div className="mb-6">
           <h1 className="font-display text-xl sm:text-2xl text-ink golden-underline inline-block mb-2">📖 传记工坊</h1>

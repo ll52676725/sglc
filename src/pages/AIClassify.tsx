@@ -460,7 +460,7 @@ export default function AIClassify() {
 
       {toast && (
         <div className={cn(
-          'fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce',
+          'fixed bottom-20 lg:bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce',
           toast.type === 'success' && 'bg-green-500 text-white',
           toast.type === 'error' && 'bg-red-500 text-white',
           toast.type === 'info' && 'bg-blue-500 text-white'
