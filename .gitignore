@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+release
+build
 *.local
 
 # Editor directories and files
@@ -23,3 +25,9 @@ dist-ssr
 *.sln
 *.sw?
 .vite
+
+# Cache and runtime data
+.cache-appdata
+uploads
+data/memory.db
+data/*.db

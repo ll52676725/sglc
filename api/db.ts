@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const DB_PATH = path.resolve(__dirname, '..', 'data', 'memory.db')
+const DB_PATH = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR, 'memory.db')
+  : path.resolve(__dirname, '..', 'data', 'memory.db')
 
 let db: Database | null = null
 

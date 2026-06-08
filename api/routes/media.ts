@@ -8,7 +8,7 @@ import { processVideo, processVideoAsync, getProcessingStatus, isFfmpegAvailable
 
 const router = Router()
 
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads')
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads')
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true })
 }
@@ -426,7 +426,8 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     if (row.url && row.url.startsWith('/uploads/')) {
-      const filePath = path.join(process.cwd(), row.url)
+      const uploadsBase = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads')
+      const filePath = path.join(uploadsBase, row.url.replace('/uploads/', ''))
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath)
       }

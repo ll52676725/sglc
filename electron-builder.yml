@@ -1,0 +1,45 @@
+appId: com.shiguangbu.app
+productName: 时光簿
+copyright: Copyright © 2025
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+  - node_modules/**/*
+  - "!node_modules/sharp/**/*"
+  - "!node_modules/esbuild/**/*"
+  - "!node_modules/electron/**/*"
+  - "!node_modules/electron-builder/**/*"
+  - "!node_modules/typescript/**/*"
+  - "!node_modules/eslint/**/*"
+  - "!node_modules/@eslint/**/*"
+  - "!node_modules/vite/**/*"
+  - "!node_modules/@vitejs/**/*"
+  - "!node_modules/tsx/**/*"
+  - "!node_modules/concurrently/**/*"
+  - "!node_modules/nodemon/**/*"
+  - "!node_modules/autoprefixer/**/*"
+  - "!node_modules/postcss/**/*"
+  - "!node_modules/tailwindcss/**/*"
+  - "!node_modules/sharp/**/*"
+
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+
+win:
+  icon: build/icon.png
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-Portable.${ext}
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/sql.js/**/*"

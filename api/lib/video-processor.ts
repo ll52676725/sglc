@@ -43,9 +43,9 @@ export interface ProcessingStatus {
 
 const processingQueue = new Map<string, ProcessingStatus>()
 
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads')
-const HLS_DIR = path.resolve(process.cwd(), 'uploads', 'hls')
-const THUMBNAILS_DIR = path.resolve(process.cwd(), 'uploads', 'thumbnails')
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.resolve(process.cwd(), 'uploads')
+const HLS_DIR = path.resolve(UPLOADS_DIR, 'hls')
+const THUMBNAILS_DIR = path.resolve(UPLOADS_DIR, 'thumbnails')
 
 function ensureDirs() {
   for (const dir of [UPLOADS_DIR, HLS_DIR, THUMBNAILS_DIR]) {
